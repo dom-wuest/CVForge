@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dom-wuest.de/cvforge/cv.schema.json",
+  "title": "CVForge CV data",
+  "description": "One language's CV content. Store data, not presentation: the renderers compose display strings from these fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "contacts", "profile", "experience", "education", "skills", "languages"],
+
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lang", "name", "tagline"],
+      "properties": {
+        "lang": {
+          "description": "Language of this file. Must match the filename suffix (data/cv-<lang>.yaml).",
+          "enum": ["en", "de"]
+        },
+        "name": { "type": "string", "minLength": 1 },
+        "tagline": {
+          "description": "One line under the name, e.g. 'M.Sc. Computer Science - Machine Learning & Rendering Engineer'.",
+          "type": "string"
+        },
+        "photo": {
+          "description": "Repo-relative path to the avatar. Omit or null for no photo.",
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "contacts": {
+      "description": "Display order is file order. Entries marked private carry a placeholder here; the real value comes from the gitignored data/private.yaml.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "icon", "value"],
+        "properties": {
+          "id": {
+            "description": "Join key with private.yaml. Stable across languages.",
+            "$ref": "#/$defs/id"
+          },
+          "icon": {
+            "description": "Font Awesome icon name, e.g. 'envelope', 'phone', 'location-dot'. Same name is used by both renderers.",
+            "type": "string",
+            "minLength": 1
+          },
+          "brand": {
+            "description": "true renders from the Font Awesome Brands font (github, linkedin, ...), which has no solid variant.",
+            "type": "boolean"
+          },
+          "value": { "type": "string", "minLength": 1 },
+          "url": { "type": ["string", "null"] },
+          "private": {
+            "description": "How this contact relates to data/private.yaml. 'hidden': the value here is a placeholder, the real one comes from private.yaml, and the whole contact is dropped from the public profile (use for the phone number). 'refine': the value here is real and publishable, and private.yaml supplies a more precise one for applications (use for the location, public 'Karlsruhe, DE' vs. full street address). Omitted: fully public, private.yaml never touches it.",
+            "enum": ["hidden", "refine", null]
+          }
+        }
+      }
+    },
+
+    "profile": {
+      "description": "Short intro paragraph. Use a folded block scalar (>).",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "org", "start"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "role": { "type": "string", "minLength": 1 },
+          "org": { "type": "string", "minLength": 1 },
+          "location": { "type": ["string", "null"] },
+          "start": { "$ref": "#/$defs/date" },
+          "end": { "$ref": "#/$defs/dateOrOngoing" },
+          "highlights": {
+            "description": "Bullet points. Each is one folded (>) paragraph.",
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "tags": { "$ref": "#/$defs/tags" }
+        }
+      }
+    },
+
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "degree", "org", "start"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "degree": { "type": "string", "minLength": 1 },
+          "org": { "type": "string", "minLength": 1 },
+          "location": { "type": ["string", "null"] },
+          "start": { "$ref": "#/$defs/date" },
+          "end": { "$ref": "#/$defs/dateOrOngoing" },
+          "thesis": {
+            "description": "Thesis title only. The 'Thesis:' label is added by the renderer.",
+            "type": ["string", "null"]
+          },
+          "minor": { "type": ["string", "null"] },
+          "specialization": { "type": ["string", "null"] },
+          "grade": {
+            "description": "Grade as a string, e.g. \"1.2\". Never pre-compose it with a label.",
+            "type": ["string", "null"]
+          },
+          "grade_note": {
+            "description": "Qualifies the grade: 'current' renders as 'Current Grade 1.2', 'final' as 'Grade 1.2'.",
+            "enum": ["current", "final", null]
+          },
+          "tags": { "$ref": "#/$defs/tags" },
+          "highlights": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+
+    "projects": {
+      "description": "Optional. Personal or academic projects.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "start"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "name": { "type": "string", "minLength": 1 },
+          "role": { "type": ["string", "null"] },
+          "summary": { "type": ["string", "null"] },
+          "start": { "$ref": "#/$defs/date" },
+          "end": { "$ref": "#/$defs/dateOrOngoing" },
+          "url": {
+            "description": "Repository or demo link.",
+            "type": ["string", "null"]
+          },
+          "url_label": {
+            "description": "Text shown for the link. Defaults to the bare host+path if omitted.",
+            "type": ["string", "null"]
+          },
+          "highlights": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "tags": { "$ref": "#/$defs/tags" }
+        }
+      }
+    },
+
+    "skills": {
+      "description": "A LIST of groups, not a mapping - mappings do not guarantee order and order is meaningful here.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["group", "items"],
+        "properties": {
+          "group": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "level"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "level": {
+            "description": "Free text, already in this file's language, e.g. 'native' / 'Muttersprache'.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "id": {
+      "description": "Stable lowercase identifier, kebab-case.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "date": {
+      "description": "QUOTED string, \"YYYY\" or \"YYYY-MM\". Precision is inferred from the length: \"2021-10\" renders as 'Oct 2021', \"2023\" as '2023'. Unquoted YAML turns 2021-10 into a date object and this will reject it.",
+      "type": "string",
+      "pattern": "^[0-9]{4}(-(0[1-9]|1[0-2]))?$"
+    },
+    "dateOrOngoing": {
+      "description": "Same as start, or null/omitted for an ongoing entry (renders as 'Present' / 'heute').",
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}(-(0[1-9]|1[0-2]))?$"
+    },
+    "tags": {
+      "description": "Free-form chips shown on the entry. `cvforge check` warns when a tag appears in no skills group, but it is not an error - per-entry tags are legitimately more granular.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

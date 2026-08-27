@@ -1,0 +1,182 @@
+# yaml-language-server: $schema=../schema/cv.schema.json
+#
+# English CV content. See README.md for the full format reference.
+#
+# Three rules that bite:
+#   1. Dates are QUOTED strings, "YYYY" or "YYYY-MM". Quoting keeps the type
+#      predictable: unquoted, YAML leaves 2021-10 a string but turns a full
+#      2021-10-01 into a date object, and the two look identical in a diff.
+#   2. Quote anything YAML 1.1 coerces. `no`/`on`/`off`/`yes` become booleans,
+#      and `grade: 1.20` becomes the float 1.2 - which would render as "1.2".
+#   3. Store data, not presentation. grade: "1.2" + grade_note: current,
+#      never "Current Grade 1.2". The renderers compose display strings.
+#
+# `cvforge check` catches all three - the schema requires strings.
+#
+# Entry order here is display order. Nothing is sorted downstream.
+
+meta:
+  lang: en
+  name: "Dominik Wüst"
+  tagline: "M.Sc. Computer Science – Machine Learning & Rendering Engineer"
+  photo: "assets/avatar.jpg"
+
+contacts:
+  # `id` is the join key with data/private.yaml.
+  # `icon` is a Font Awesome name, shared by both renderers.
+  - id: email
+    icon: envelope
+    value: "kontakt@dom-wuest.de"
+    url: "mailto:kontakt@dom-wuest.de"
+
+  - id: phone
+    icon: phone
+    value: "+49 000 0000000" # placeholder; real number in private.yaml
+    private: hidden # dropped entirely from the public/HTML profile
+
+  - id: location
+    icon: location-dot
+    value: "Karlsruhe, DE" # publishable as-is
+    private: refine # private.yaml refines this to the full street address
+
+  - id: linkedin
+    icon: linkedin
+    brand: true
+    value: "dom-wuest"
+    url: "https://linkedin.com/in/dom-wuest"
+
+  - id: github
+    icon: github
+    brand: true
+    value: "dom-wuest"
+    url: "https://github.com/dom-wuest"
+
+  - id: website
+    icon: globe
+    value: "dom-wuest.de"
+    url: "https://dom-wuest.de"
+
+profile: >
+  Computer Science graduate specializing in real-time computer graphics, GPU
+  programming and machine learning. Experienced in C++, Vulkan and Python
+  through research at KIT and Fraunhofer IOSB. Interested in neural rendering,
+  differentiable graphics and computer vision.
+
+experience:
+  - id: fraunhofer-iosb
+    role: "Research Assistant"
+    org: "Fraunhofer IOSB"
+    location: "Karlsruhe, Germany"
+    start: "2021-10"
+    end: "2026-03"
+    highlights:
+      - >
+        Applied pretrained computer vision models for object detection,
+        segmentation, image retrieval, and vision-language embeddings to
+        accelerate Structure-from-Motion pipelines
+      - >
+        Deployed deep learning models in C++ using ONNX Runtime and clip.cpp,
+        converting models to ONNX and modifying computation graphs to support
+        dynamic batch sizes and image resolutions
+      - >
+        Developed and shipped cross-platform software and maintained CI/CD
+        pipelines using GitLab and Docker
+    tags: ["C++", "Qt", "OpenCV", "ONNX Runtime"]
+
+  - id: kit-ivd
+    role: "Research Assistant"
+    org: "Karlsruhe Institute of Technology (IVD)"
+    location: "Karlsruhe, Germany"
+    start: "2025-05"
+    end: "2025-08"
+    highlights:
+      - >
+        Contributed to a LLM-based shader optimization pipeline by integrating
+        the Falcor renderer and adding support for cooperative vector
+        acceleration
+      - "Designed related LLM prompts and analyzed proposed optimizations automatically"
+      - "Co-author on related paper under submission"
+    tags: ["Python", "C++", "Slang"]
+
+  - id: kit-capp
+    role: "Student Assistant"
+    org: "Karlsruhe Institute of Technology (CAPP)"
+    location: "Karlsruhe, Germany"
+    start: "2020-11"
+    end: "2021-07"
+    highlights:
+      - "Tutored a group of students in computer engineering"
+      - >
+        Courses in fundamentals of microelectronics, design and construction of
+        logic circuits
+    tags: ["LaTeX", "C", "Presentations"]
+
+education:
+  - id: msc-kit
+    degree: "M.Sc. Computer Science"
+    org: "Karlsruhe Institute of Technology (KIT)"
+    location: "Karlsruhe, Germany"
+    start: "2023"
+    end: null # ongoing
+    thesis: >
+      Automatic Shader Function Level of Detail using Neural Networks and
+      Symbolic Regression
+    grade: "1.2"
+    grade_note: current
+    tags: ["Computer Graphics", "Anthropomatics and Cognitive Systems"]
+
+  - id: bsc-kit
+    degree: "B.Sc. Computer Science"
+    org: "Karlsruhe Institute of Technology (KIT)"
+    location: "Karlsruhe, Germany"
+    start: "2018"
+    end: "2023"
+    thesis: "Real-Time Neural Path-Guiding"
+    minor: "Electrical Engineering"
+    grade: "2.1"
+    grade_note: final
+
+  - id: abitur
+    degree: "Allgemeine Hochschulreife"
+    org: "Technisches Gymnasium Schwäbisch Hall"
+    location: "Schwäbisch Hall, Germany"
+    start: "2015"
+    end: "2018"
+    specialization: "Computer Science"
+    grade: "1.2"
+    grade_note: final
+
+# Optional section. Delete the whole key to omit it from both renderers.
+# projects:
+#   - id: example-project
+#     name: "Real-Time Path Tracer"
+#     summary: >
+#       A Vulkan path tracer with ReSTIR direct lighting and a denoiser.
+#     start: "2024-05"
+#     end: null
+#     url: "https://github.com/dom-wuest/example"
+#     url_label: "github.com/dom-wuest/example"
+#     highlights:
+#       - "Wavefront path tracing with persistent threads"
+#     tags: ["Vulkan", "Slang", "C++"]
+
+# A list of groups, not a mapping - order is meaningful.
+skills:
+  - group: "Languages"
+    items: ["C++", "Python"]
+  - group: "Graphics"
+    items: ["Vulkan", "Slang", "GLSL"]
+  - group: "ML"
+    items: ["PyTorch", "CUDA", "ONNX Runtime", "tiny-cuda-nn"]
+  - group: "Computer Vision"
+    items: ["OpenCV", "OpenMMLab", "clip.cpp"]
+  - group: "Frameworks & UI"
+    items: ["Qt", "ImGui", "React", "HTML/CSS"]
+  - group: "Tooling"
+    items: ["Docker", "CMake", "GitLab CI/CD"]
+
+languages:
+  - name: "German"
+    level: "native"
+  - name: "English"
+    level: "fluent"

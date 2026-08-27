@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CV: Build PDF (en)",
+      "type": "shell",
+      "command": "uv run cvforge pdf --lang en",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "CV: Build PDF (de)",
+      "type": "shell",
+      "command": "uv run cvforge pdf --lang de",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "CV: Build all",
+      "type": "shell",
+      "command": "uv run cvforge all",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "CV: Dev watch (en)",
+      "detail": "Regenerates build/cv-en.json on data changes. Pair with Tinymist: Preview.",
+      "type": "shell",
+      "command": "uv run cvforge dev --lang en",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "CV: Check data",
+      "type": "shell",
+      "command": "uv run cvforge check",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "CV: Check for leaked private data",
+      "type": "shell",
+      "command": "uv run cvforge check-clean",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    }
+  ]
+}

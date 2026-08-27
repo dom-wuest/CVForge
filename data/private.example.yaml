@@ -1,0 +1,29 @@
+# Copy this file to data/private.yaml and fill in the real values.
+#
+#     cp data/private.example.yaml data/private.yaml
+#
+# data/private.yaml is gitignored and is the ONLY place a real phone number or
+# street address may appear. It is shared across all languages.
+#
+# It is merged in only for `--profile full` (the default for the PDF).
+# `--profile public` - which the HTML target forces - ignores this file
+# entirely, even when it exists.
+#
+# If this file is missing, every build still succeeds; the committed
+# placeholders are used and one informational line is printed. A fresh clone
+# and CI need no special-casing.
+
+contacts:
+  # Keys are the `id` of a contact in data/cv-<lang>.yaml.
+  # Only `value` and `url` may be overridden.
+
+  # id: phone is marked `private: hidden` - the committed value is a
+  # placeholder and the contact is dropped from the public profile.
+  phone:
+    value: "+49 721 1234567"
+    url: "tel:+491234567"
+
+  # id: location is marked `private: refine` - the committed "Karlsruhe, DE"
+  # is publishable, and this refines it for job applications.
+  location:
+    value: "Musterstraße 1, 76131 Karlsruhe"

@@ -1,0 +1,24 @@
+# ─── Sensitive data ─────────────────────────────────────────────────────────
+# Real phone number and street address live here. NEVER commit this file.
+# The committed data/cv-*.yaml carry placeholders only, so nothing leaks even
+# if this entry is ever removed by accident.
+data/private.yaml
+data/private.*.yaml
+!data/private.example.yaml
+
+# ─── Generated artifacts ────────────────────────────────────────────────────
+# build/ may contain the resolved CV *with* private values merged in.
+build/
+out/
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ruff_cache/
+
+# ─── Editors / OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp

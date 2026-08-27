@@ -1,0 +1,52 @@
+{
+  // ─── Tinymist (Typst language server + live preview) ──────────────────────
+  // The bundled fonts must be on the path or Font Awesome glyphs come out
+  // blank and the body text silently falls back to another typeface.
+  // Both keys are needed: `fontPaths` covers compile/diagnostics, and
+  // `preview.fontPaths` covers the preview panel separately.
+  "tinymist.rootPath": ".",
+  "tinymist.fontPaths": ["assets/fonts"],
+  "tinymist.preview.fontPaths": ["assets/fonts"],
+
+  // main.typ reads `sys.inputs.lang` to pick build/cv-<lang>.json.
+  // Switch both to "de" to preview the German CV in-editor.
+  "tinymist.typstExtraArgs": ["--input", "lang=en"],
+  "tinymist.preview.sysInputs": { "lang": "en" },
+
+  // The CLI owns out/. Letting Tinymist also write PDFs there races it.
+  "tinymist.exportPdf": "never",
+
+  "tinymist.formatterMode": "typstyle",
+  "tinymist.formatterPrintWidth": 100,
+  "tinymist.preview.scrollSync": "onSelectionChangeByMouse",
+
+  "[typst]": {
+    "editor.defaultFormatter": "myriad-dreamin.tinymist",
+    "editor.rulers": [100]
+  },
+
+  // ─── CV data authoring ───────────────────────────────────────────────────
+  // Gives completion and inline validation while editing the YAML.
+  // Requires the redhat.vscode-yaml extension.
+  "yaml.schemas": {
+    "./schema/cv.schema.json": ["data/cv-*.yaml"]
+  },
+  "[yaml]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.autoIndent": "advanced"
+  },
+
+  // ─── Python ──────────────────────────────────────────────────────────────
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": ["src"],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": { "source.organizeImports.ruff": "explicit" }
+  },
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.ruff_cache": true
+  }
+}
