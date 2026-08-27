@@ -1,0 +1,63 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed only by the release job
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: typst-community/setup-typst@v4
+        with:
+          typst-version: "0.15.0"
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Validate the CV data
+        run: uv run cvforge check
+
+      # data/private.yaml does not exist here, so every artifact is built from
+      # the committed placeholders automatically. No secrets, no conditionals.
+      - name: Build all outputs
+        run: uv run cvforge all
+
+      # Belt and braces: the placeholders cannot leak, but if someone ever adds
+      # a private.yaml to CI this fails the build rather than publishing it.
+      - name: Check for leaked private data
+        run: uv run cvforge check-clean
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cv
+          path: |
+            out/*.pdf
+            out/*.html
+            out/cv.css
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cv
+          path: out
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*.pdf
+# Deliberately no Pages deploy: the HTML target is a fragment for an existing
+# site, not a standalone page. Pull out/cv-en.html and out/cv.css from the
+# workflow artifact and embed them.

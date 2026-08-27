@@ -76,9 +76,7 @@ def _assert_public(data: dict[str, Any]) -> None:
 
     leaked = [c["id"] for c in data.get("contacts", []) if c.get("private") == "hidden"]
     if leaked:
-        raise ProfileError(
-            "resolved artifact still contains hidden contacts: " + ", ".join(leaked)
-        )
+        raise ProfileError("resolved artifact still contains hidden contacts: " + ", ".join(leaked))
 
 
 # TODO(html): inline <svg> icons instead of the Font Awesome webfont.

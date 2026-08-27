@@ -1,0 +1,228 @@
+/* ─── cv.css ────────────────────────────────────────────────────────────────
+ * SCAFFOLD. Enough structure to be readable; not the finished design.
+ *
+ * This is deliberately NOT generated from templates/pdf/theme.typ. Web is
+ * scroll, not A4, and this stylesheet is meant to be adapted to dom-wuest.de's
+ * own look. The two only have to cover the same data.
+ *
+ * Rules that are not negotiable, because the fragment lives inside someone
+ * else's page:
+ *   - every selector is scoped under .cvf
+ *   - every custom property is prefixed --cvf-
+ *   - no element/tag selectors outside .cvf
+ *   - no @import, no webfonts (inherit the host's typography where sensible)
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+.cvf {
+  /* ── Colour ─────────────────────────────────────────────────────────────── */
+  --cvf-accent: #2b6cb0;
+  --cvf-ink: #1a202c;
+  --cvf-muted: #718096;
+  --cvf-rail: #a8c6e4;
+  --cvf-chip-bg: #eaf1f9;
+  --cvf-chip-border: #b9d0e8;
+
+  /* ── Metrics ────────────────────────────────────────────────────────────── */
+  --cvf-gap: 1.5rem;
+  --cvf-rail-width: 2px;
+  --cvf-node-size: 9px;
+  --cvf-radius: 4px;
+
+  color: var(--cvf-ink);
+  line-height: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cvf {
+    /* TODO(html): tune against the host site's dark palette. */
+    --cvf-ink: #e2e8f0;
+    --cvf-muted: #94a3b8;
+    --cvf-chip-bg: #1e293b;
+    --cvf-chip-border: #334155;
+  }
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.cvf-header {
+  display: flex;
+  align-items: center;
+  gap: var(--cvf-gap);
+}
+
+.cvf-photo {
+  border-radius: 50%;
+  border: 3px solid var(--cvf-rail);
+  flex: none;
+}
+
+.cvf-name {
+  margin: 0;
+}
+
+.cvf-tagline {
+  margin: 0.2em 0 0.6em;
+  color: var(--cvf-accent);
+}
+
+.cvf-contacts,
+.cvf-chips,
+.cvf-languages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+}
+
+.cvf-contact {
+  color: var(--cvf-muted);
+  font-size: 0.9em;
+}
+
+/* ── Sections ─────────────────────────────────────────────────────────────── */
+
+.cvf-section {
+  margin-top: var(--cvf-gap);
+}
+
+.cvf-section > h2 {
+  color: var(--cvf-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 1rem;
+  border-bottom: 1px solid var(--cvf-rail);
+  padding-bottom: 0.3em;
+  margin-bottom: 0.9em;
+}
+
+/* ── Timeline ─────────────────────────────────────────────────────────────── */
+/* The direct analogue of the Typst rail: a border-left on the <ol> plus a
+ * ::before circle per <li>, instead of a grid.vline and placed nodes. */
+
+.cvf-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--cvf-gap);
+  border-left: var(--cvf-rail-width) solid var(--cvf-rail);
+}
+
+.cvf-timeline--dotted {
+  border-left-style: dotted;
+}
+
+.cvf-entry {
+  position: relative;
+  margin-bottom: 1.4rem;
+}
+
+.cvf-entry::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--cvf-gap) - var(--cvf-node-size) / 2 - var(--cvf-rail-width) / 2);
+  top: 0.45em;
+  width: var(--cvf-node-size);
+  height: var(--cvf-node-size);
+  border-radius: 50%;
+  background: var(--cvf-accent);
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.cvf-timeline--dotted .cvf-entry::before {
+  background: #fff;
+  border: 2px solid var(--cvf-accent);
+  box-shadow: none;
+}
+
+.cvf-dates,
+.cvf-meta {
+  margin: 0;
+  color: var(--cvf-muted);
+  font-size: 0.85em;
+}
+
+.cvf-present {
+  font-style: italic;
+}
+
+.cvf-title {
+  margin: 0.1em 0;
+  font-size: 1em;
+}
+
+.cvf-org {
+  color: var(--cvf-muted);
+  font-weight: normal;
+}
+
+.cvf-org::before {
+  content: " | ";
+  color: var(--cvf-rail);
+}
+
+.cvf-highlights {
+  margin: 0.5em 0;
+  padding-left: 1.1em;
+}
+
+.cvf-highlights li::marker {
+  color: var(--cvf-accent);
+}
+
+/* ── Chips ────────────────────────────────────────────────────────────────── */
+
+.cvf-chips {
+  gap: 0.3rem;
+  margin-top: 0.5em;
+}
+
+.cvf-chip {
+  background: var(--cvf-chip-bg);
+  border: 1px solid var(--cvf-chip-border);
+  border-radius: var(--cvf-radius);
+  padding: 0.15em 0.5em;
+  font-size: 0.8em;
+  color: var(--cvf-accent);
+}
+
+/* ── Skills ───────────────────────────────────────────────────────────────── */
+
+.cvf-skills {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+}
+
+.cvf-skills dt {
+  text-align: right;
+  color: var(--cvf-muted);
+  font-weight: 600;
+  font-size: 0.85em;
+  padding-top: 0.2em;
+}
+
+.cvf-skills dd {
+  margin: 0;
+}
+
+@media (max-width: 34rem) {
+  .cvf-skills {
+    grid-template-columns: 1fr;
+  }
+  .cvf-skills dt {
+    text-align: left;
+  }
+  .cvf-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ── TODO(html) ───────────────────────────────────────────────────────────────
+ * - inline <svg> icons; .cvf-icon currently renders nothing
+ * - decide whether the avatar is inlined as a data URI or copied to out/
+ * - tune type scale, spacing and colours against dom-wuest.de
+ * - print stylesheet, so the web version prints sanely too
+ * ─────────────────────────────────────────────────────────────────────────── */

@@ -1,0 +1,173 @@
+# yaml-language-server: $schema=../schema/cv.schema.json
+#
+# Deutscher Lebenslauf.
+#
+# Struktur, Daten und ids sind identisch zu cv-en.yaml und fertig verdrahtet -
+# `uv run cvforge pdf --lang de` baut sofort. Was fehlt, ist die Übersetzung
+# der Fließtexte: jede noch englische Stelle ist mit "TODO übersetzen:"
+# markiert, sodass sie im PDF sofort ins Auge fällt.
+#
+# Die englische Originalfassung steht jeweils dahinter - beim Übersetzen
+# einfach das "TODO übersetzen: " samt englischem Text ersetzen.
+#
+# Die drei Fallstricke aus cv-en.yaml gelten unverändert:
+#   1. Daten sind ZITIERTE Strings, "YYYY" oder "YYYY-MM".
+#   2. `no`/`on`/`off`/`ja` und `note: 1,20` werden von YAML umgedeutet.
+#   3. Daten speichern, keine Darstellung: grade: "1,2" + grade_note: current.
+#
+# private.yaml wird von allen Sprachen geteilt - hier nichts zu tun.
+
+meta:
+  lang: de
+  name: "Dominik Wüst"
+  tagline: "M.Sc. Informatik – Machine Learning & Rendering Engineer"
+  photo: "assets/avatar.jpg"
+
+contacts:
+  - id: email
+    icon: envelope
+    value: "kontakt@dom-wuest.de"
+    url: "mailto:kontakt@dom-wuest.de"
+
+  - id: phone
+    icon: phone
+    value: "+49 000 0000000"
+    private: hidden
+
+  - id: location
+    icon: location-dot
+    value: "Karlsruhe, DE"
+    private: refine
+
+  - id: linkedin
+    icon: linkedin
+    brand: true
+    value: "dom-wuest"
+    url: "https://linkedin.com/in/dom-wuest"
+
+  - id: github
+    icon: github
+    brand: true
+    value: "dom-wuest"
+    url: "https://github.com/dom-wuest"
+
+  - id: website
+    icon: globe
+    value: "dom-wuest.de"
+    url: "https://dom-wuest.de"
+
+profile: >
+  TODO übersetzen: Computer Science graduate specializing in real-time computer
+  graphics, GPU programming and machine learning. Experienced in C++, Vulkan
+  and Python through research at KIT and Fraunhofer IOSB. Interested in neural
+  rendering, differentiable graphics and computer vision.
+
+experience:
+  - id: fraunhofer-iosb
+    role: "Wissenschaftliche Hilfskraft"
+    org: "Fraunhofer IOSB"
+    location: "Karlsruhe, Deutschland"
+    start: "2021-10"
+    end: "2026-03"
+    highlights:
+      - >
+        TODO übersetzen: Applied pretrained computer vision models for object
+        detection, segmentation, image retrieval, and vision-language
+        embeddings to accelerate Structure-from-Motion pipelines
+      - >
+        TODO übersetzen: Deployed deep learning models in C++ using ONNX
+        Runtime and clip.cpp, converting models to ONNX and modifying
+        computation graphs to support dynamic batch sizes and image resolutions
+      - >
+        TODO übersetzen: Developed and shipped cross-platform software and
+        maintained CI/CD pipelines using GitLab and Docker
+    tags: ["C++", "Qt", "OpenCV", "ONNX Runtime"]
+
+  - id: kit-ivd
+    role: "Wissenschaftliche Hilfskraft"
+    org: "Karlsruher Institut für Technologie (IVD)"
+    location: "Karlsruhe, Deutschland"
+    start: "2025-05"
+    end: "2025-08"
+    highlights:
+      - >
+        TODO übersetzen: Contributed to a LLM-based shader optimization
+        pipeline by integrating the Falcor renderer and adding support for
+        cooperative vector acceleration
+      - >
+        TODO übersetzen: Designed related LLM prompts and analyzed proposed
+        optimizations automatically
+      - >
+        TODO übersetzen: Co-author on related paper under submission
+    tags: ["Python", "C++", "Slang"]
+
+  - id: kit-capp
+    role: "Studentische Hilfskraft"
+    org: "Karlsruher Institut für Technologie (CAPP)"
+    location: "Karlsruhe, Deutschland"
+    start: "2020-11"
+    end: "2021-07"
+    highlights:
+      - >
+        TODO übersetzen: Tutored a group of students in computer engineering
+      - >
+        TODO übersetzen: Courses in fundamentals of microelectronics, design
+        and construction of logic circuits
+    tags: ["LaTeX", "C", "Presentations"]
+
+education:
+  # Titel von Abschlussarbeiten bleiben bewusst im englischen Original -
+  # sie sind Eigennamen und werden auch im deutschen CV so zitiert.
+  - id: msc-kit
+    degree: "M.Sc. Informatik"
+    org: "Karlsruher Institut für Technologie (KIT)"
+    location: "Karlsruhe, Deutschland"
+    start: "2023"
+    end: null
+    thesis: >
+      Automatic Shader Function Level of Detail using Neural Networks and
+      Symbolic Regression
+    grade: "1,2"
+    grade_note: current
+    tags: ["Computergrafik", "Anthropomatik und Kognitive Systeme"]
+
+  - id: bsc-kit
+    degree: "B.Sc. Informatik"
+    org: "Karlsruher Institut für Technologie (KIT)"
+    location: "Karlsruhe, Deutschland"
+    start: "2018"
+    end: "2023"
+    thesis: "Real-Time Neural Path-Guiding"
+    minor: "Elektrotechnik"
+    grade: "2,1"
+    grade_note: final
+
+  - id: abitur
+    degree: "Allgemeine Hochschulreife"
+    org: "Technisches Gymnasium Schwäbisch Hall"
+    location: "Schwäbisch Hall, Deutschland"
+    start: "2015"
+    end: "2018"
+    specialization: "Informationstechnik"
+    grade: "1,2"
+    grade_note: final
+
+skills:
+  - group: "Sprachen"
+    items: ["C++", "Python"]
+  - group: "Grafik"
+    items: ["Vulkan", "Slang", "GLSL"]
+  - group: "ML"
+    items: ["PyTorch", "CUDA", "ONNX Runtime", "tiny-cuda-nn"]
+  - group: "Computer Vision"
+    items: ["OpenCV", "OpenMMLab", "clip.cpp"]
+  - group: "Frameworks & UI"
+    items: ["Qt", "ImGui", "React", "HTML/CSS"]
+  - group: "Werkzeuge"
+    items: ["Docker", "CMake", "GitLab CI/CD"]
+
+languages:
+  - name: "Deutsch"
+    level: "Muttersprache"
+  - name: "Englisch"
+    level: "verhandlungssicher"

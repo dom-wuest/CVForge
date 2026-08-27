@@ -38,12 +38,16 @@ def _compile_pdf(lang: str) -> Path:
     target = paths.pdf(lang)
     target.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
-        _typst(), "compile",
+        _typst(),
+        "compile",
         str(paths.PDF_MAIN.relative_to(paths.ROOT)),
         str(target.relative_to(paths.ROOT)),
-        "--root", ".",
-        "--font-path", str(paths.FONTS.relative_to(paths.ROOT)),
-        "--input", f"lang={lang}",
+        "--root",
+        ".",
+        "--font-path",
+        str(paths.FONTS.relative_to(paths.ROOT)),
+        "--input",
+        f"lang={lang}",
     ]
     print("  " + " ".join(cmd[1:]))
     result = subprocess.run(cmd, cwd=paths.ROOT)

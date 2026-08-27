@@ -65,14 +65,21 @@ def _check_tags(data: dict[str, Any], lang: str) -> list[str]:
 
     Per-entry tags are legitimately more granular than the skills section, so
     this is a nudge about typos, never an error.
+
+    Education is excluded: its tags are study focus areas ("Computer Graphics",
+    "Anthropomatics and Cognitive Systems"), a different vocabulary from the
+    skills list. Checking them would emit warnings that can never be resolved,
+    which trains you to ignore the ones that matter.
     """
     known = {item.casefold() for group in data.get("skills", []) for item in group["items"]}
     out = []
-    for section in ("experience", "education", "projects"):
+    for section in ("experience", "projects"):
         for entry in data.get(section, []):
             for tag in entry.get("tags", []):
                 if tag.casefold() not in known:
-                    out.append(f"[{lang}] {section}.{entry['id']}: tag {tag!r} is in no skills group")
+                    out.append(
+                        f"[{lang}] {section}.{entry['id']}: tag {tag!r} is in no skills group"
+                    )
     return out
 
 
@@ -99,7 +106,7 @@ def _check_private_coverage(langs: tuple[str, ...]) -> list[str]:
     """Warn about contacts marked private with no matching private.yaml entry."""
     if not paths.PRIVATE.is_file():
         return []
-    overrides = set((resolve.load_yaml(paths.PRIVATE).get("contacts") or {}))
+    overrides = set(resolve.load_yaml(paths.PRIVATE).get("contacts") or {})
     out = []
     for lang in langs:
         src = paths.source(lang)
@@ -181,7 +188,7 @@ def check_clean(dirs: tuple[Path, ...] = (paths.BUILD, paths.OUT)) -> int:
         # PDFs legitimately contain the phone number under --profile full; the
         # point of this check is the web output, so say what was not scanned
         # rather than pretending full coverage.
-        print(f"not scanned (binary, expected to contain private data under profile=full):")
+        print("not scanned (binary, expected to contain private data under profile=full):")
         for rel in skipped_binary:
             print(f"  {rel}")
 

@@ -1,0 +1,138 @@
+{#
+  ─── cv.html.j2 ────────────────────────────────────────────────────────────
+  SCAFFOLD. The markup here is real and final in shape; the styling is not.
+
+  Contract:
+    * A FRAGMENT - no <html>/<head>/<body>. It is dropped into an existing page
+      on dom-wuest.de, alongside out/cv.css.
+    * Everything under .cvf, so it cannot collide with the host stylesheet.
+    * Semantic: <section> per section, <h2> headings, <ol> for timelines,
+      <time datetime="..."> for dates. This is the version search engines read.
+    * No JavaScript.
+
+  Private contacts are already gone: html.py refuses to render anything whose
+  meta.profile is not "public", and the resolve step drops them there.
+
+  TODO(html): icons. Each icon slot carries data-icon / data-icon-style so an
+  inline <svg> can be dropped in without changing the structure.
+  See assets/icons/README.md.
+#}
+<div class="cvf" lang="{{ cv.meta.lang }}">
+
+  <header class="cvf-header">
+    {% if cv.meta.photo %}
+    {# TODO(html): copy the avatar into out/ and point src at the deployed path. #}
+    <img class="cvf-photo" src="{{ cv.meta.photo }}" alt="{{ cv.meta.name }}" width="120" height="120">
+    {% endif %}
+    <div class="cvf-identity">
+      <h1 class="cvf-name">{{ cv.meta.name }}</h1>
+      <p class="cvf-tagline">{{ cv.meta.tagline }}</p>
+      <ul class="cvf-contacts">
+        {% for c in cv.contacts %}
+        <li class="cvf-contact">
+          <span class="cvf-icon" data-icon="{{ c.icon }}" data-icon-style="{{ 'brands' if c.brand else 'solid' }}" aria-hidden="true"></span>
+          {% if c.url %}<a href="{{ c.url }}" rel="me">{{ c.value }}</a>{% else %}{{ c.value }}{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </header>
+
+  {% if cv.profile %}
+  <section class="cvf-section cvf-profile" id="cvf-profile">
+    <h2>{{ labels.profile }}</h2>
+    <p>{{ cv.profile }}</p>
+  </section>
+  {% endif %}
+
+  {#
+    One macro for all three timeline sections. They differ only in which field
+    is the title and whether the rail reads as solid or dotted - the same split
+    as sections/experience.typ vs sections/education.typ.
+  #}
+  {% macro timeline(entries, title_key, org_key, variant) %}
+  <ol class="cvf-timeline cvf-timeline--{{ variant }}">
+    {% for e in entries %}
+    <li class="cvf-entry{% if e.ongoing %} cvf-entry--ongoing{% endif %}">
+      <p class="cvf-dates">
+        <time datetime="{{ e.start_iso }}">{{ e.start_display }}</time>
+        <span class="cvf-dash" aria-hidden="true">–</span>
+        {% if e.end_iso %}
+        <time datetime="{{ e.end_iso }}">{{ e.end_display }}</time>
+        {% else %}
+        <span class="cvf-present">{{ e.end_display }}</span>
+        {% endif %}
+      </p>
+      <h3 class="cvf-title">
+        {{ e[title_key] }}
+        {% if org_key and e[org_key] %}<span class="cvf-org">{{ e[org_key] }}</span>{% endif %}
+      </h3>
+      {% if e.meta_line %}<p class="cvf-meta">{{ e.meta_line }}</p>{% endif %}
+      {% if e.summary %}<p class="cvf-summary">{{ e.summary }}</p>{% endif %}
+      {% if e.highlights %}
+      <ul class="cvf-highlights">
+        {% for h in e.highlights %}<li>{{ h }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% if e.url %}
+      <p class="cvf-link"><a href="{{ e.url }}">{{ e.url_label or e.url }}</a></p>
+      {% endif %}
+      {% if e.tags %}
+      <ul class="cvf-chips">
+        {% for t in e.tags %}<li class="cvf-chip">{{ t }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endmacro %}
+
+  {% if cv.experience %}
+  <section class="cvf-section" id="cvf-experience">
+    <h2>{{ labels.experience }}</h2>
+    {{ timeline(cv.experience, 'role', 'org', 'solid') }}
+  </section>
+  {% endif %}
+
+  {% if cv.education %}
+  <section class="cvf-section" id="cvf-education">
+    <h2>{{ labels.education }}</h2>
+    {{ timeline(cv.education, 'degree', 'org', 'dotted') }}
+  </section>
+  {% endif %}
+
+  {% if cv.projects %}
+  <section class="cvf-section" id="cvf-projects">
+    <h2>{{ labels.projects }}</h2>
+    {{ timeline(cv.projects, 'name', none, 'solid') }}
+  </section>
+  {% endif %}
+
+  {% if cv.skills %}
+  <section class="cvf-section" id="cvf-skills">
+    <h2>{{ labels.skills }}</h2>
+    <dl class="cvf-skills">
+      {% for g in cv.skills %}
+      <dt>{{ g.group }}</dt>
+      <dd>
+        <ul class="cvf-chips">
+          {% for item in g['items'] %}<li class="cvf-chip">{{ item }}</li>{% endfor %}
+        </ul>
+      </dd>
+      {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
+
+  {% if cv.languages %}
+  <section class="cvf-section" id="cvf-languages">
+    <h2>{{ labels.languages }}</h2>
+    <ul class="cvf-languages">
+      {% for l in cv.languages %}
+      <li><span class="cvf-lang-name">{{ l.name }}</span> <span class="cvf-lang-level">{{ l.level }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+</div>

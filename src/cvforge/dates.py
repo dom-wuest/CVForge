@@ -15,10 +15,21 @@ DATE_RE = re.compile(r"^(?P<year>[0-9]{4})(?:-(?P<month>0[1-9]|1[0-2]))?$")
 
 # Abbreviations as they should appear in the rendered CV.
 MONTHS: dict[str, list[str]] = {
-    "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    "de": ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni",
-           "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."],
+    "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "de": [
+        "Jan.",
+        "Feb.",
+        "März",
+        "Apr.",
+        "Mai",
+        "Juni",
+        "Juli",
+        "Aug.",
+        "Sep.",
+        "Okt.",
+        "Nov.",
+        "Dez.",
+    ],
 }
 
 
