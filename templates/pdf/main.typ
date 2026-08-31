@@ -13,12 +13,13 @@
 
 #import "template.typ": cv-template
 #import "components/header.typ": header-from
+#import "components/sidebar.typ": two-column
 #import "sections/profile.typ": profile-section
 #import "sections/experience.typ": experience-section
 #import "sections/education.typ": education-section
 #import "sections/projects.typ": projects-section
-#import "sections/skills.typ": skills-section
-#import "sections/languages.typ": languages-section
+#import "sections/skills.typ": skills-aside
+#import "sections/languages.typ": languages-aside
 
 #let lang = sys.inputs.at("lang", default: "en")
 #let cv = json("/build/cv-" + lang + ".json")
@@ -26,20 +27,31 @@
 
 #show: cv-template.with(lang: lang)
 
+// Full width: name, tagline, contacts, and the photo top-right.
 #header-from(cv.meta, cv.contacts)
 
-// `cv.sections` is the list of sections that actually have content, in display
-// order, computed during resolve. Dispatching off it means an empty or absent
-// section disappears from the PDF with no `if` per section here.
+// Which sections go where. Skills and Languages are short and narrow, so they
+// pay for a sidebar; the timeline-shaped sections stay in the main column,
+// where every millimetre of width saves height.
+#let MAIN-SECTIONS = ("profile", "experience", "education", "projects")
+#let ASIDE-SECTIONS = ("skills", "languages")
+
 #let renderers = (
   profile: () => profile-section(cv.profile, labels),
   experience: () => experience-section(cv.experience, labels),
   education: () => education-section(cv.education, labels),
   projects: () => projects-section(cv.projects, labels),
-  skills: () => skills-section(cv.skills, labels),
-  languages: () => languages-section(cv.languages, labels),
+  skills: () => skills-aside(cv.skills, labels),
+  languages: () => languages-aside(cv.languages, labels),
 )
 
-#for name in cv.sections {
-  (renderers.at(name))()
+// `cv.sections` is the list of sections that actually have content, in display
+// order, computed during resolve. Filtering it into the two columns keeps the
+// property that an empty or absent section disappears with no `if` here.
+#let render(names) = {
+  for name in cv.sections.filter(n => n in names) {
+    (renderers.at(name))()
+  }
 }
+
+#two-column(render(MAIN-SECTIONS), render(ASIDE-SECTIONS))

@@ -228,8 +228,11 @@ meta:
   lang: en                                  # must match the filename
   name: "Dominik Wüst"
   tagline: "M.Sc. Computer Science – …"
-  photo: "assets/avatar.jpg"                # repo-relative; omit for none
+  photo: "assets/avatar.jpg"                # repo-relative; null for none
 ```
+
+Set `photo: null` to build a version without a photograph — see
+[Building without a photo](#building-without-a-photo).
 
 ### `contacts`
 
@@ -327,6 +330,11 @@ projects:
 
 A **list of groups**, not a mapping — mappings do not guarantee order across
 YAML libraries, and order is meaningful here.
+
+Skills render in the sidebar directly above the spoken `languages` section, so
+**do not name a group after that section**. A group called `Languages` sits
+right under the `LANGUAGES` heading and reads as a mistake; in German the two
+would be the identical word `Sprachen`. Use `Programming` / `Programmierung`.
 
 ```yaml
 skills:
@@ -439,8 +447,62 @@ The ones worth knowing before you touch the timeline:
 - `chip.outset` grows the chip background without affecting layout, so a line
   of chips keeps the same height as a line of plain text.
 
-If the CV runs onto a second page and you want it on one, the effective knobs
-are `size`, `leading`, `timeline.row-gutter` and `h1.above` — in that order.
+### The two-column layout
+
+The body is a two-column grid: the timeline sections on the left, a narrow
+aside on the right carrying Skills and Languages. Which section goes where is
+decided in [templates/pdf/main.typ](templates/pdf/main.typ) by two lists,
+`MAIN-SECTIONS` and `ASIDE-SECTIONS` — move a name between them to move the
+section.
+
+The geometry is in `theme.sidebar`. Two things about it are worth knowing:
+
+- **The sidebar is narrow on purpose, and one chip per row is what allows it.**
+  Chips wrapping inline need roughly 45 mm; stacked they fit in 28 mm. That
+  matters more than it sounds: the main column holds the tall content, so every
+  millimetre the sidebar takes costs *more* height than it saves. Widening the
+  sidebar back to 45 mm pushes the CV onto a second page.
+- **`header.photo-size` is independent of `sidebar.width`.** They are both
+  28 mm today, so the photo sits squarely above the column, but they are
+  separate keys — change the sidebar width and the photo stays put.
+
+The aside starts below the header, so it lines up with the first section
+heading whether or not there is a photo. Nothing special-cases the two cases.
+
+### Fitting on one page
+
+Both CVs currently fit on one page, and `cvforge pdf` prints the page count so
+a regression is visible immediately:
+
+```
+wrote out/cv-de.pdf  (1 page)
+```
+
+**Check German first.** German prose runs longer than English, so `cv-de.yaml`
+is the tighter of the two and will spill first. If it does, the effective knobs
+are `timeline.row-gutter`, `h1.above`, `leading` and `size` — in that order.
+
+Do **not** shrink `timeline.date-col` to buy width; at 4.5em, "Mar 2026" and
+"May 2025" wrap onto two lines. The sidebar width is the place to reclaim
+space.
+
+If the CV does overflow, the sidebar's vertical rule continues onto page two as
+a short stub. That is a symptom of the overflow, not a separate bug — fix the
+overflow.
+
+### Building without a photo
+
+Some employers ask for a CV without a photograph. Set `photo` to null in the
+data file and rebuild:
+
+```yaml
+meta:
+  photo: null # was "assets/avatar.jpg"
+```
+
+The header collapses to full width, the aside still starts level with the
+`PROFILE` heading, and the HTML fragment drops the `<img>` too. Remember to
+revert it afterwards.
 
 ---
 

@@ -162,12 +162,14 @@ education:
 
 # A list of groups, not a mapping - order is meaningful.
 skills:
-  - group: "Languages"
+  # Group names must not collide with the `languages` section below - both
+  # render in the sidebar, one above the other.
+  - group: "Programming"
     items: ["C++", "Python"]
-  - group: "Graphics"
-    items: ["Vulkan", "Slang", "GLSL"]
-  - group: "ML"
-    items: ["PyTorch", "CUDA", "ONNX Runtime", "tiny-cuda-nn"]
+  - group: "Graphics & GPU"
+    items: ["Vulkan", "Slang", "GLSL", "CUDA"]
+  - group: "Machine Learning"
+    items: ["PyTorch", "ONNX Runtime", "tiny-cuda-nn"]
   - group: "Computer Vision"
     items: ["OpenCV", "OpenMMLab", "clip.cpp"]
   - group: "Frameworks & UI"

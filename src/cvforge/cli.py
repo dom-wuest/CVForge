@@ -27,6 +27,38 @@ def _typst() -> str:
     return exe
 
 
+def _page_count(pdf: Path) -> int | None:
+    """Page count of a PDF we just produced, or None if it cannot be read.
+
+    One page is a design requirement here, and the German CV has only a few
+    millimetres of slack, so a silent regression to two pages is easy to ship
+    unnoticed. This reads /Count out of the page tree rather than taking on a
+    PDF dependency.
+
+    It only ever parses our own Typst output, which writes the page tree as
+    "<</Type/Pages/Count 1/Kids[...]>>". Anything else returns None and the
+    caller simply omits the number - this must never fail a build. The search
+    is anchored on /Type/Pages because /Count also appears in the outline.
+    """
+    try:
+        blob = pdf.read_bytes()
+    except OSError:
+        return None
+    marker = blob.find(b"/Type/Pages")
+    if marker == -1:
+        return None
+    key = blob.find(b"/Count", marker)
+    if key == -1 or key - marker > 200:
+        return None
+    digits = bytearray()
+    for byte in blob[key + 6 : key + 32]:
+        if 48 <= byte <= 57:
+            digits.append(byte)
+        elif digits:
+            break
+    return int(digits) if digits else None
+
+
 def _compile_pdf(lang: str) -> Path:
     """Run typst with the flags this project always needs.
 
@@ -53,7 +85,9 @@ def _compile_pdf(lang: str) -> Path:
     result = subprocess.run(cmd, cwd=paths.ROOT)
     if result.returncode != 0:
         raise resolve.ResolveError(f"typst compile failed (exit {result.returncode})")
-    print(f"  wrote {target.relative_to(paths.ROOT).as_posix()}")
+    pages = _page_count(target)
+    suffix = "" if pages is None else f"  ({pages} page{'s' if pages != 1 else ''})"
+    print(f"  wrote {target.relative_to(paths.ROOT).as_posix()}{suffix}")
     return target
 
 

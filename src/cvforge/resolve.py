@@ -14,6 +14,7 @@ duplicating it in the HTML one is how the two drift apart.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -139,13 +140,20 @@ def merge_private(data: dict[str, Any], profile: str, *, quiet: bool = False) ->
 
 
 def _clean(value: Any) -> Any:
-    """Strip the trailing newline YAML block scalars leave behind.
+    """Normalise the whitespace YAML block scalars leave behind.
 
-    `>` already folds internal newlines into spaces, so only the trailing one is
-    ever spurious. Internal newlines from a `|` literal are preserved.
+    Two artifacts, both invisible in the source:
+
+    - `>` folds internal newlines into spaces, so the trailing one is spurious.
+    - A line ending in a space folds to *two* spaces, because the fold adds one
+      of its own. Trailing whitespace is invisible in an editor but shows up in
+      the rendered PDF as a visible gap mid-sentence.
+
+    Runs of spaces and tabs collapse; newlines never do, so the deliberate line
+    breaks of a `|` literal block survive.
     """
     if isinstance(value, str):
-        return value.rstrip()
+        return re.sub(r"[ \t]{2,}", " ", value.rstrip())
     if isinstance(value, list):
         return [_clean(v) for v in value]
     if isinstance(value, dict):

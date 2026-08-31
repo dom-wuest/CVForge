@@ -1,5 +1,9 @@
 // ─── components/header.typ ──────────────────────────────────────────────────
-// Name, tagline and contact row on the left; circular photo on the right.
+// Name, tagline and contact row on the left; circular photo top-right.
+//
+// The photo lives here rather than in the sidebar so its size is independent
+// of the column width below. When meta.photo is null the `auto` column
+// collapses to zero and the text takes the full width - no conditional.
 
 #import "../theme.typ": theme
 #import "contact.typ": contacts-from
@@ -8,7 +12,9 @@
   grid(
     columns: (1fr, auto),
     column-gutter: theme.header.gutter,
-    align: (left + horizon, right + horizon),
+    // right + top so the photo hangs from the top edge and lines up with the
+    // name, instead of centring against the whole text block.
+    align: (left + horizon, right + top),
     {
       text(
         size: theme.header.name-size,

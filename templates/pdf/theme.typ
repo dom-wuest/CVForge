@@ -42,8 +42,8 @@
   h1: (
     size: 10.5pt,
     tracking: 0.08em,
-    above: 1.5em,
-    below: 0.85em,
+    above: 1.25em,
+    below: 0.75em,
     rule: 0.7pt, // hairline under the heading
     rule-gap: -0.55em, // pulls the rule up against the text
   ),
@@ -66,6 +66,8 @@
     name-tracking: -0.01em,
     tagline-size: 10.5pt,
     gutter: 1.2em, // between the text column and the photo
+    // Equal to sidebar.width today, so the photo sits squarely above the
+    // column - but kept a separate key so either can be retuned alone.
     photo-size: 28mm,
     photo-stroke: 2pt,
     gap-name: -0.5em, // tightens name -> tagline
@@ -98,9 +100,11 @@
 
   // ── Timeline ──────────────────────────────────────────────────────────────
   timeline: (
+    // Do not shrink this to buy width: at 4.5em "Mar 2026" and "May 2025"
+    // wrap onto two lines. The sidebar is the place to reclaim width.
     date-col: 5.2em,
     gutter: 1.5em,
-    row-gutter: 1.3em,
+    row-gutter: 1.15em,
     node-r: 3.5pt,
     rail: 1.3pt,
     // Aligns the node circle to the first baseline of the title. Calibrated
@@ -122,5 +126,21 @@
     label-size: 8.5pt,
     column-gutter: 1.2em,
     row-gutter: 0.7em,
+  ),
+
+  // ── Right sidebar (skills + languages) ────────────────────────────────────
+  // Narrow on purpose. One chip per row is what lets it be this thin, and
+  // every millimetre here is a millimetre the main column does not get: the
+  // body text is the tall part of the page, so it pays for the width twice.
+  sidebar: (
+    width: 28mm,
+    gutter: 6mm,
+    // Same 0.7pt + rail as the h1 underline, so the separator reads as part of
+    // the existing system rather than as a new device.
+    rule: 0.7pt,
+    group-gap: 0.7em, // between skill groups
+    label-gap: 0.35em, // group label -> its chips
+    chip-gap: 0.42em, // between stacked chips
+    entry-gap: 0.35em, // between language entries
   ),
 )

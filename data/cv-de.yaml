@@ -152,12 +152,15 @@ education:
     grade_note: final
 
 skills:
-  - group: "Sprachen"
+  # Gruppennamen duerfen nicht mit dem Abschnitt `languages` kollidieren -
+  # beide stehen in der Seitenspalte direkt uebereinander. "Sprachen" waere
+  # zweimal dasselbe Wort.
+  - group: "Programmierung"
     items: ["C++", "Python"]
-  - group: "Grafik"
-    items: ["Vulkan", "Slang", "GLSL"]
-  - group: "ML"
-    items: ["PyTorch", "CUDA", "ONNX Runtime", "tiny-cuda-nn"]
+  - group: "Grafik & GPU"
+    items: ["Vulkan", "Slang", "GLSL", "CUDA"]
+  - group: "Machine Learning"
+    items: ["PyTorch", "ONNX Runtime", "tiny-cuda-nn"]
   - group: "Computer Vision"
     items: ["OpenCV", "OpenMMLab", "clip.cpp"]
   - group: "Frameworks & UI"
