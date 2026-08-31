@@ -57,10 +57,10 @@ contacts:
     url: "https://dom-wuest.de"
 
 profile: >
-  TODO übersetzen: Computer Science graduate specializing in real-time computer
-  graphics, GPU programming and machine learning. Experienced in C++, Vulkan
-  and Python through research at KIT and Fraunhofer IOSB. Interested in neural
-  rendering, differentiable graphics and computer vision.
+  Informatiker mit Schwerpunkt auf Echtzeit-Computergrafik, GPU-Programmierung 
+  und Machine Learning. Praxiserfahrung in C++, Vulkan und Python durch 
+  Forschungstätigkeiten am KIT und Fraunhofer IOSB. Interessiert an Neural 
+  Rendering, Differentiable Rendering und Computer Vision.
 
 experience:
   - id: fraunhofer-iosb
@@ -71,16 +71,16 @@ experience:
     end: "2026-03"
     highlights:
       - >
-        TODO übersetzen: Applied pretrained computer vision models for object
-        detection, segmentation, image retrieval, and vision-language
-        embeddings to accelerate Structure-from-Motion pipelines
+        Einsatz von Computer-Vision-Modellen für Objekterkennung, Segmentierung, 
+        Bildretrieval und Vision-Language-Embeddings zur Beschleunigung von 
+        Structure-from-Motion-Pipelines
       - >
-        TODO übersetzen: Deployed deep learning models in C++ using ONNX
-        Runtime and clip.cpp, converting models to ONNX and modifying
-        computation graphs to support dynamic batch sizes and image resolutions
+        Integration von Deep-Learning-Modellen in C++ mittels ONNX Runtime und 
+        clip.cpp, Konvertierung nach ONNX sowie Anpassungen zur Unterstützung 
+        dynamischer Batchgrößen und Bildauflösungen
       - >
-        TODO übersetzen: Developed and shipped cross-platform software and
-        maintained CI/CD pipelines using GitLab and Docker
+        Entwicklung und Auslieferung plattformübergreifender Software sowie 
+        Wartung von CI/CD-Pipelines mit GitLab und Docker
     tags: ["C++", "Qt", "OpenCV", "ONNX Runtime"]
 
   - id: kit-ivd
@@ -91,14 +91,13 @@ experience:
     end: "2025-08"
     highlights:
       - >
-        TODO übersetzen: Contributed to a LLM-based shader optimization
-        pipeline by integrating the Falcor renderer and adding support for
-        cooperative vector acceleration
+        Mitwirkung an einer LLM-basierten Pipeline zur Shader-Optimierung durch 
+        Integration des Falcor-Renderers und cooperativer Vektor/Matrix-Beschluniger
       - >
-        TODO übersetzen: Designed related LLM prompts and analyzed proposed
-        optimizations automatically
+        Entwicklung geeigneter LLM-Prompts sowie automatische Analyse der 
+        vorgeschlagenen Optimierungen
       - >
-        TODO übersetzen: Co-author on related paper under submission
+        Co-autor einer derzeit eingereichten wissenschaftlichen Veröffentlichung
     tags: ["Python", "C++", "Slang"]
 
   - id: kit-capp
@@ -109,10 +108,10 @@ experience:
     end: "2021-07"
     highlights:
       - >
-        TODO übersetzen: Tutored a group of students in computer engineering
+        Betreuung einer Übungsgruppe in Technischer Informatik
       - >
-        TODO übersetzen: Courses in fundamentals of microelectronics, design
-        and construction of logic circuits
+        Lehrangebot zu Grundlagen der Mikroelektronik sowie Entwurf und 
+        Aufbau von digitaler Schaltungen
     tags: ["LaTeX", "C", "Presentations"]
 
 education:

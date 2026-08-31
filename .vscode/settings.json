@@ -4,14 +4,11 @@
   // blank and the body text silently falls back to another typeface.
   // Both keys are needed: `fontPaths` covers compile/diagnostics, and
   // `preview.fontPaths` covers the preview panel separately.
-  "tinymist.rootPath": ".",
   "tinymist.fontPaths": ["assets/fonts"],
-  "tinymist.preview.fontPaths": ["assets/fonts"],
 
   // main.typ reads `sys.inputs.lang` to pick build/cv-<lang>.json.
   // Switch both to "de" to preview the German CV in-editor.
   "tinymist.typstExtraArgs": ["--input", "lang=en"],
-  "tinymist.preview.sysInputs": { "lang": "en" },
 
   // The CLI owns out/. Letting Tinymist also write PDFs there races it.
   "tinymist.exportPdf": "never",
