@@ -446,6 +446,11 @@ The ones worth knowing before you touch the timeline:
   is calibrated against `timeline.title-size`; retune it if you change that.
 - `chip.outset` grows the chip background without affecting layout, so a line
   of chips keeps the same height as a line of plain text.
+- The contact row **packs its own lines** rather than letting Typst wrap it.
+  To the line breaker a `|` separator is just more inline content, so a wrapped
+  row kept whichever one landed at the end of the line — a divider dividing
+  nothing. `contact-row` measures the items and decides the breaks itself, so a
+  separator is only drawn between two items that really are side by side.
 
 ### The two-column layout
 
@@ -462,9 +467,18 @@ The geometry is in `theme.sidebar`. Two things about it are worth knowing:
   matters more than it sounds: the main column holds the tall content, so every
   millimetre the sidebar takes costs *more* height than it saves. Widening the
   sidebar back to 45 mm pushes the CV onto a second page.
-- **`header.photo-size` is independent of `sidebar.width`.** They are both
-  28 mm today, so the photo sits squarely above the column, but they are
-  separate keys — change the sidebar width and the photo stays put.
+- **`header.photo-size` is independent of `sidebar.width`.** The photo is
+  28 mm and the sidebar column 32 mm, so the photo sits roughly above the
+  column, but they are separate keys — change one and the other stays put.
+- **`sidebar.gutter` and `sidebar.pad` must stay equal.** The rule is drawn at
+  the start of the sidebar column, so `gutter` is the air to its left and `pad`
+  the air to its right. They were one value once, which put 6 mm on the main
+  side and 0.2 mm on the sidebar side — the rule read as a border stuck to the
+  content rather than a divider between two columns.
+
+Note that `sidebar.width` is the **whole column**; the usable content width is
+`width - pad`. Keep that at 28 mm when retuning — it is what lets the widest
+chips (`ONNX Runtime`, `GitLab CI/CD`) sit on one line.
 
 The aside starts below the header, so it lines up with the first section
 heading whether or not there is a photo. Nothing special-cases the two cases.

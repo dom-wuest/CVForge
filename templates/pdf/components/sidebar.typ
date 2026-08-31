@@ -15,5 +15,8 @@
   column-gutter: theme.sidebar.gutter,
   grid.vline(x: 1, stroke: theme.sidebar.rule + theme.rail),
   main-body,
-  aside-body,
+  // Inset from the rule. Without it the rule sits flush against the sidebar
+  // text while all the gutter's air goes to the main column, which reads as a
+  // border on the content rather than a divider between two columns.
+  pad(left: theme.sidebar.pad, aside-body),
 )

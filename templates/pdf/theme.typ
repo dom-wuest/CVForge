@@ -81,6 +81,7 @@
     icon-size: 0.95em,
     icon-gap: 0.4em, // icon -> its text
     sep-gap: 0.7em, // around the "|" separators
+    row-gap: 0.45em, // between wrapped contact lines
   ),
 
   // ── Chips / skill pills ───────────────────────────────────────────────────
@@ -133,8 +134,17 @@
   // every millimetre here is a millimetre the main column does not get: the
   // body text is the tall part of the page, so it pays for the width twice.
   sidebar: (
-    width: 28mm,
-    gutter: 6mm,
+    // `width` is the whole column; `pad` is taken off the left for breathing
+    // room, so the usable content width is width - pad = 28mm. Keep that 28mm
+    // if you retune: it is what makes the widest chips ("ONNX Runtime",
+    // "GitLab CI/CD") fit on one line.
+    width: 32mm,
+    pad: 4mm,
+    // The rule is drawn at the start of the sidebar column, so `gutter` is the
+    // air to its left and `pad` the air to its right. Keep them equal or the
+    // rule looks stuck to one side - it sat 0.7mm off the sidebar text and
+    // 6mm off the main column before these were split apart.
+    gutter: 4mm,
     // Same 0.7pt + rail as the h1 underline, so the separator reads as part of
     // the existing system rather than as a new device.
     rule: 0.7pt,
