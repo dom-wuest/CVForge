@@ -92,12 +92,12 @@ experience:
     highlights:
       - >
         Mitwirkung an einer LLM-basierten Pipeline zur Shader-Optimierung durch 
-        Integration des Falcor-Renderers und cooperativer Vektor/Matrix-Beschluniger
+        Integration des Falcor-Renderers und cooperativer Vektor/Matrix-Beschleuniger
       - >
         Entwicklung geeigneter LLM-Prompts sowie automatische Analyse der 
         vorgeschlagenen Optimierungen
       - >
-        Co-autor einer derzeit eingereichten wissenschaftlichen Veröffentlichung
+        Co-Autor einer derzeit eingereichten wissenschaftlichen Veröffentlichung
     tags: ["Python", "C++", "Slang"]
 
   - id: kit-capp
@@ -111,7 +111,7 @@ experience:
         Betreuung einer Übungsgruppe in Technischer Informatik
       - >
         Lehrangebot zu Grundlagen der Mikroelektronik sowie Entwurf und 
-        Aufbau von digitaler Schaltungen
+        Aufbau digitaler Schaltungen
     tags: ["LaTeX", "C", "Presentations"]
 
 education:
