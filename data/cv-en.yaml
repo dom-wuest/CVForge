@@ -20,6 +20,7 @@ meta:
   name: "Dominik Wüst"
   tagline: "M.Sc. Computer Science – Machine Learning & Rendering Engineer"
   photo: "assets/avatar.jpg"
+  projects_layout: page # inline | page | omit
 
 contacts:
   # `id` is the join key with data/private.yaml.
@@ -160,6 +161,72 @@ education:
 #     highlights:
 #       - "Wavefront path tracing with persistent threads"
 #     tags: ["Vulkan", "Slang", "C++"]
+
+# Where these appear is set by meta.projects_layout at the top of the file:
+#   inline -> in the main column, as an ordinary timeline section
+#   page   -> their own full-width page after the CV, with room for a screenshot
+#   omit   -> left out entirely  (not "off" - YAML reads that as false)
+# `image` is only read by the page layout; the other two have no room for it.
+projects:
+  - id: shader-lod
+    name: "Automatic Shader Function Level of Detail using Neural Networks and Symbolic Regression"
+    start: "2026"
+    end: "2026"
+    url_note: "Code will be published after grading"
+    summary: >
+      Master's thesis: a data-driven approach to shader level of detail. Tiny
+      MLPs and symbolic expressions are fitted automatically to approximate
+      shader functions. The pipeline collects training data, fits the models,
+      optimizes hyperparameters and evaluates candidates by rendering the shader
+      end-to-end. It also explores fitting the models with respect to the final
+      image using differentiable rendering.
+    tags: ["Machine Learning", "Python", "Slang"]
+
+  - id: fluid-sim-2d
+    name: "2D Fluid Simulation on the GPU"
+    start: "2023"
+    end: "2023"
+    url: "https://github.com/dom-wuest/FluidSim2D"
+    url_label: "github.com/dom-wuest/FluidSim2D"
+    image: "assets/projects/fluid-sim-2d.jpg"
+    summary: >
+      An incompressible fluid simulation built on Vulkan compute shaders. It
+      operates on a two-dimensional grid and supports solid and fluid cells with
+      various initial conditions. Performance bottlenecks were analyzed with
+      NVIDIA Nsight Graphics and optimized through ghost zoning, kernel
+      decomposition and loop unrolling.
+    tags: ["C++", "Vulkan", "CFD"]
+
+  - id: neural-path-guiding
+    name: "Real-Time Neural Path-Guiding"
+    start: "2023"
+    end: "2023"
+    url: "https://github.com/dom-wuest/NeuralPathGuiding"
+    url_label: "github.com/dom-wuest/NeuralPathGuiding"
+    image: "assets/projects/neural-path-guiding.jpg"
+    summary: >
+      Bachelor's thesis: a compact MLP predicts the incident illumination at
+      surfaces and guides subsequent rays. Training data is collected while
+      rendering and the network is trained online to predict vMF distributions.
+      In the next frame these steer the rays at the first visible surface
+      towards bright regions.
+    tags: ["Path-Tracing", "Machine Learning", "CUDA"]
+
+  - id: ivs3d
+    name: "Intelligent Video Sampler 3D"
+    start: "2021"
+    end: null
+    url: "https://github.com/iVS3D/iVS3D"
+    url_label: "github.com/iVS3D/iVS3D"
+    image: "assets/projects/ivs3d.jpg"
+    summary: >
+      Preprocessing of image sequences for Structure-from-Motion using computer
+      vision algorithms and deep learning models. The open-source project has
+      been developed actively for over five years and runs on Windows and Linux.
+      A plugin architecture selects frames by camera movement, deep visual
+      similarity and GPS position, and masks dynamic objects such as vehicles
+      automatically before a configurable SfM workflow starts.
+    tags: ["C++", "Qt", "OpenCV"]
 
 # A list of groups, not a mapping - order is meaningful.
 skills:

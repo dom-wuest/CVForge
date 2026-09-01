@@ -22,6 +22,7 @@ meta:
   name: "Dominik Wüst"
   tagline: "M.Sc. Informatik – Machine Learning & Rendering Engineer"
   photo: "assets/avatar.jpg"
+  projects_layout: page # inline | page | omit
 
 contacts:
   - id: email
@@ -153,6 +154,78 @@ education:
     grade: "1,2"
     grade_note: final
 
+# ─── Projekte ───────────────────────────────────────────────────────────────
+# Die Platzierung steuert meta.projects_layout oben:
+#   inline -> in der Hauptspalte, als normale Timeline-Sektion
+#   page   -> eigene Seite in voller Breite nach dem Lebenslauf, mit Screenshot
+#   omit   -> gar nicht  (nicht "off" - YAML liest das als false)
+# `image` wertet nur das Seitenlayout aus.
+projects:
+  - id: shader-lod
+    name: "Automatic Shader Function Level of Detail using Neural Networks and Symbolic Regression"
+    start: "2026"
+    end: "2026"
+    url_note: "Code wird nach der Bewertung veröffentlicht"
+    summary: >
+      Masterarbeit über einen datengetriebenen Ansatz für Shader Level of
+      Detail. Kleine MLPs und symbolische Ausdrücke werden automatisch an
+      Shader-Funktionen angepasst. Die Pipeline erzeugt Trainingsdaten,
+      trainiert die Modelle, optimiert Hyperparameter und bewertet Kandidaten
+      anhand des gerenderten Bildes. Zusätzlich wurde die Optimierung
+      hinsichtlich des finalen Bildes mittels Differentiable Rendering
+      untersucht.
+    tags: ["Machine Learning", "Python", "Slang"]
+
+  - id: fluid-sim-2d
+    name: "2D Strömungssimulation auf der GPU"
+    start: "2023"
+    end: "2023"
+    url: "https://github.com/dom-wuest/FluidSim2D"
+    url_label: "github.com/dom-wuest/FluidSim2D"
+    image: "assets/projects/fluid-sim-2d.jpg"
+    summary: >
+      Implementierung einer inkompressiblen Strömungssimulation auf Basis von
+      Vulkan-Compute-Shadern. Das System arbeitet auf einem zweidimensionalen
+      Gitter, unterstützt feste und flüssige Zellen sowie verschiedene
+      Anfangsbedingungen. Performance-Engpässe wurden mit NVIDIA Nsight Graphics
+      analysiert und durch Ghost Zoning, Kernel-Dekomposition und Loop Unrolling
+      optimiert.
+    tags: ["C++", "Vulkan", "CFD"]
+
+  - id: neural-path-guiding
+    name: "Real-Time Neural Path-Guiding"
+    start: "2023"
+    end: "2023"
+    url: "https://github.com/dom-wuest/NeuralPathGuiding"
+    url_label: "github.com/dom-wuest/NeuralPathGuiding"
+    image: "assets/projects/neural-path-guiding.jpg"
+    summary: >
+      Bachelorarbeit über ein kompaktes MLP zur Vorhersage einfallender
+      Beleuchtung auf Oberflächen und zur Steuerung nachfolgender Strahlen.
+      Trainingsdaten werden während des Renderns gesammelt und das Netzwerk
+      online trainiert, um vMF-Verteilungen vorherzusagen. Diese werden im
+      nächsten Frame für jeden Pixel genutzt, um Strahlen an der ersten
+      sichtbaren Oberfläche in Richtung heller Bereiche zu steuern.
+    tags: ["Path-Tracing", "Machine Learning", "CUDA"]
+
+  - id: ivs3d
+    name: "Intelligent Video Sampler 3D"
+    start: "2021"
+    end: null
+    url: "https://github.com/iVS3D/iVS3D"
+    url_label: "github.com/iVS3D/iVS3D"
+    image: "assets/projects/ivs3d.jpg"
+    summary: >
+      Vorverarbeitung von Bildsequenzen für Structure-from-Motion mittels
+      Computer-Vision-Algorithmen und Deep-Learning-Modellen. Das
+      Open-Source-Projekt wird seit über fünf Jahren aktiv weiterentwickelt und
+      unterstützt Windows und Linux. Es verfügt über eine Plugin-Architektur zur
+      Bildauswahl anhand von Kamerabewegung, visueller Ähnlichkeit und
+      GPS-Position sowie zur automatischen Maskierung dynamischer Objekte vor
+      dem Start einer konfigurierbaren SfM-Pipeline.
+    tags: ["C++", "Qt", "OpenCV"]
+
+# A list of groups, not a mapping - order is meaningful.
 skills:
   # Gruppennamen duerfen nicht mit dem Abschnitt `languages` kollidieren -
   # beide stehen in der Seitenspalte direkt uebereinander. "Sprachen" waere
