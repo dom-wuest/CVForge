@@ -217,6 +217,10 @@
   font-weight: 600;
 }
 
+.cvf-rated-note {
+  color: var(--cvf-muted);
+}
+
 .cvf-bar {
   flex: none;
   display: inline-block;

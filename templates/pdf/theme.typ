@@ -173,7 +173,7 @@
     // room, so the usable content width is width - pad = 28mm. Keep that 28mm
     // if you retune: it is what makes the widest chips ("ONNX Runtime",
     // "GitLab CI/CD") fit on one line.
-    width: 32mm,
+    width: 33mm,
     pad: 4mm,
     // The rule is drawn at the start of the sidebar column, so `gutter` is the
     // air to its left and `pad` the air to its right. Keep them equal or the
@@ -183,7 +183,11 @@
     // Same 0.7pt + rail as the h1 underline, so the separator reads as part of
     // the existing system rather than as a new device.
     rule: 0.7pt,
-    group-gap: 0.7em, // between skill groups
+    // "stacked" gives one chip per row - the layout the 28mm column was
+    // sized for. "wrapped" packs as many per row as fit, which is denser
+    // but leaves a ragged right edge on the longer names.
+    chip-layout: "wrapped",
+    group-gap: 1.0em, // between skill groups
     label-gap: 0.35em, // group label -> its chips
     chip-gap: 0.42em, // between stacked chips
     entry-gap: 0.35em, // between language entries

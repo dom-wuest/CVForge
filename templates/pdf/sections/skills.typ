@@ -5,8 +5,8 @@
 // the order in the YAML file.
 
 #import "../theme.typ": theme
-#import "../components/bars.typ": rated-row
-#import "../components/chips.typ": chip, chips-from
+#import "../components/bars.typ": rated-entry
+#import "../components/chips.typ": chip-run, chips-from
 
 #let skills-section(groups, labels) = {
   heading(level: 1, labels.skills)
@@ -35,18 +35,31 @@
 // An item with a `rating` drops the chip and becomes a label plus a bar - a
 // chip with a bar next to it does not fit in 28mm, and the two treatments read
 // as "this one is measurable, that one is a fact".
-#let skill-items(items) = stack(
-  dir: ttb,
-  spacing: theme.sidebar.chip-gap,
-  ..items.map(item => if item.rating == none {
-    chip(item.name)
-  } else {
-    rated-row(
-      text(size: theme.chip.size, weight: "semibold", fill: theme.ink, item.name),
-      item.rating,
-    )
-  }),
-)
+#let skill-items(items) = {
+  // An item with a rating or a note gets a full-width row of its own; the rest
+  // are chips. Consecutive chips are collected into one run so `chip-run` can
+  // pack them onto shared rows when the layout asks for it - while keeping the
+  // file's order, which is the display order everywhere else too.
+  let blocks = ()
+  let run = ()
+  for item in items {
+    if item.rating == none and item.note == none {
+      run.push(item.name)
+    } else {
+      if run.len() > 0 {
+        blocks.push(chip-run(run))
+        run = ()
+      }
+      blocks.push(rated-entry(
+        text(size: theme.chip.size, weight: "semibold", fill: theme.ink, item.name),
+        rating: item.rating,
+        note: item.note,
+      ))
+    }
+  }
+  if run.len() > 0 { blocks.push(chip-run(run)) }
+  stack(dir: ttb, spacing: theme.sidebar.chip-gap, ..blocks)
+}
 
 #let skills-aside(groups, labels) = {
   heading(level: 1, labels.skills)

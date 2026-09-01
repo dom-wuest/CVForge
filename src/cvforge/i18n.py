@@ -18,6 +18,7 @@ LABELS: dict[str, dict[str, str]] = {
         "projects": "Projects",
         "skills": "Skills",
         "languages": "Languages",
+        "interests": "Interests",
         # Timeline
         "present": "Present",
         # Education meta line
@@ -36,6 +37,7 @@ LABELS: dict[str, dict[str, str]] = {
         "projects": "Projekte",
         "skills": "Kenntnisse",
         "languages": "Sprachen",
+        "interests": "Interessen",
         "present": "heute",
         "thesis": "Abschlussarbeit",
         "minor": "Nebenfach",

@@ -227,16 +227,20 @@ projects:
 
 # A list of groups, not a mapping - order is meaningful.
 skills:
-  # Gruppennamen duerfen nicht mit dem Abschnitt `languages` kollidieren -
-  # beide stehen in der Seitenspalte direkt uebereinander. "Sprachen" waere
+  # Gruppennamen dürfen nicht mit dem Abschnitt `languages` kollidieren -
+  # beide stehen in der Seitenspalte direkt übereinander. "Sprachen" wäre
   # zweimal dasselbe Wort.
   # Ein Eintrag ist entweder nur ein Name oder ein Name mit `rating` (1-5),
   # das statt eines Chips einen kleinen Balken rendert. Sparsam einsetzen.
   # PLATZHALTERWERTE: bitte anpassen.
   - group: "Programmierung"
     items:
-      - { name: "C++", rating: 5 }
-      - { name: "Python", rating: 4 }
+      # `note` nennt den Kontext der Nutzung - genau das, wonach gesucht wird.
+      # PLATZHALTERWERTE bei den Ratings: bitte anpassen.
+      - { name: "C++", rating: 5, note: "beruflich" }
+      - { name: "Python", rating: 4, note: "beruflich" }
+      - { name: "C#", rating: 2, note: "private Projekte" }
+      - { name: "Rust", rating: 1, note: "private Projekte" }
   - group: "Grafik & GPU"
     items: ["Vulkan", "Slang", "GLSL", "CUDA"]
   - group: "Machine Learning"
@@ -244,7 +248,7 @@ skills:
   - group: "Computer Vision"
     items: ["OpenCV", "OpenMMLab", "clip.cpp"]
   - group: "Frameworks & UI"
-    items: ["Qt", "ImGui", "React", "HTML/CSS"]
+    items: ["Qt", "HTML/CSS", "ImGui", "React"]
   - group: "Werkzeuge"
     items: ["Docker", "CMake", "GitLab CI/CD"]
 
@@ -255,3 +259,11 @@ languages:
   - name: "Englisch"
     level: "verhandlungssicher"
     rating: 4
+
+# Als Chips in der Seitenspalte. Bewusst nicht-fachlich: Rendering, Grafik und
+# KI stehen bereits in Kurzprofil, Kenntnissen und allen Projekten.
+interests:
+  - "Krafttraining"
+  - "Wandern"
+  - "PC-Modding"
+  - "Raumfahrt"

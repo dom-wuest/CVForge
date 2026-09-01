@@ -121,8 +121,12 @@
       <dd>
         <ul class="cvf-chips">
           {% for item in g['items'] %}
-          {% if item.rating %}
-          <li class="cvf-rated"><span class="cvf-rated-name">{{ item.name }}</span><span class="cvf-bar" style="--cvf-fill: {{ (item.rating / 5 * 100) | round | int }}%" role="img" aria-label="{{ item.rating }} out of 5"></span></li>
+          {% if item.rating or item.note %}
+          <li class="cvf-rated">
+            <span class="cvf-rated-name">{{ item.name }}</span>
+            {% if item.note %}<span class="cvf-rated-note">{{ item.note }}</span>{% endif %}
+            {% if item.rating %}<span class="cvf-bar" style="--cvf-fill: {{ (item.rating / 5 * 100) | round | int }}%" role="img" aria-label="{{ item.rating }} out of 5"></span>{% endif %}
+          </li>
           {% else %}
           <li class="cvf-chip">{{ item.name }}</li>
           {% endif %}
@@ -145,6 +149,15 @@
         {% if l.rating %}<span class="cvf-bar" style="--cvf-fill: {{ (l.rating / 5 * 100) | round | int }}%" role="img" aria-label="{{ l.rating }} out of 5"></span>{% endif %}
       </li>
       {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if cv.interests %}
+  <section class="cvf-section" id="cvf-interests">
+    <h2>{{ labels.interests }}</h2>
+    <ul class="cvf-chips">
+      {% for i in cv.interests %}<li class="cvf-chip">{{ i }}</li>{% endfor %}
     </ul>
   </section>
   {% endif %}

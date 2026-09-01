@@ -368,6 +368,14 @@
           }
         }
       }
+    },
+    "interests": {
+      "description": "Optional. Rendered as plain chips in the sidebar. Keep these non-technical: the technical ones are already the tagline, the profile, the skills and the projects.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   },
   "$defs": {
@@ -423,6 +431,11 @@
             },
             "rating": {
               "$ref": "#/$defs/rating"
+            },
+            "note": {
+              "description": "Short muted line under the name, giving the context you used it in - 'professional', 'personal projects', 'coursework'. Reads as a claim a recruiter can act on, where a bar alone does not.",
+              "type": "string",
+              "minLength": 1
             }
           }
         }

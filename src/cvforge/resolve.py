@@ -188,8 +188,8 @@ def _skill_item(item: Any) -> dict[str, Any]:
     have to care, so they always get the mapping.
     """
     if isinstance(item, str):
-        return {"name": item, "rating": None}
-    return {"name": item["name"], "rating": item.get("rating")}
+        return {"name": item, "rating": None, "note": None}
+    return {"name": item["name"], "rating": item.get("rating"), "note": item.get("note")}
 
 
 def _one_line(value: str | None) -> str | None:
@@ -275,6 +275,7 @@ def derive(data: dict[str, Any], lang: str, profile: str) -> dict[str, Any]:
             "projects",
             "skills",
             "languages",
+            "interests",
         )
         if data.get(name)
     ]

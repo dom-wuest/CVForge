@@ -149,19 +149,6 @@ education:
     grade: "1.2"
     grade_note: final
 
-# projects:
-#   - id: example-project
-#     name: "Real-Time Path Tracer"
-#     summary: >
-#       A Vulkan path tracer with ReSTIR direct lighting and a denoiser.
-#     start: "2024-05"
-#     end: null
-#     url: "https://github.com/dom-wuest/example"
-#     url_label: "github.com/dom-wuest/example"
-#     highlights:
-#       - "Wavefront path tracing with persistent threads"
-#     tags: ["Vulkan", "Slang", "C++"]
-
 # Where these appear is set by meta.projects_layout at the top of the file:
 #   inline -> in the main column, as an ordinary timeline section
 #   page   -> their own full-width page after the CV, with room for a screenshot
@@ -237,8 +224,12 @@ skills:
   # reads as wallpaper. PLACEHOLDER VALUES: adjust to your own judgement.
   - group: "Programming"
     items:
-      - { name: "C++", rating: 5 }
-      - { name: "Python", rating: 4 }
+      # `note` gives the context you used it in - the thing a reader is actually
+      # scanning for. RATINGS ARE PLACEHOLDERS: adjust to your own judgement.
+      - { name: "C++", rating: 5, note: "professional" }
+      - { name: "Python", rating: 4, note: "professional" }
+      - { name: "C#", rating: 2, note: "personal projects" }
+      - { name: "Rust", rating: 1, note: "personal projects" }
   - group: "Graphics & GPU"
     items: ["Vulkan", "Slang", "GLSL", "CUDA"]
   - group: "Machine Learning"
@@ -246,7 +237,7 @@ skills:
   - group: "Computer Vision"
     items: ["OpenCV", "OpenMMLab", "clip.cpp"]
   - group: "Frameworks & UI"
-    items: ["Qt", "ImGui", "React", "HTML/CSS"]
+    items: ["Qt", "HTML/CSS", "ImGui", "React"]
   - group: "Tooling"
     items: ["Docker", "CMake", "GitLab CI/CD"]
 
@@ -257,3 +248,12 @@ languages:
   - name: "English"
     level: "fluent"
     rating: 4
+
+# Rendered as chips in the sidebar. Deliberately non-technical: rendering,
+# graphics and AI are already the tagline, the profile, the skills and every
+# project, so repeating them here would spend lines on a settled point.
+interests:
+  - "Weight Lifting"
+  - "Hiking"
+  - "PC Modding"
+  - "Spaceflight"

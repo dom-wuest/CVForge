@@ -19,6 +19,7 @@
 #import "sections/education.typ": education-section
 #import "sections/projects.typ": projects-page, projects-section
 #import "sections/skills.typ": skills-aside
+#import "sections/interests.typ": interests-aside
 #import "sections/languages.typ": languages-aside
 
 #let lang = sys.inputs.at("lang", default: "en")
@@ -34,7 +35,7 @@
 // pay for a sidebar; the timeline-shaped sections stay in the main column,
 // where every millimetre of width saves height.
 #let MAIN-SECTIONS = ("profile", "experience", "education", "projects")
-#let ASIDE-SECTIONS = ("skills", "languages")
+#let ASIDE-SECTIONS = ("skills", "languages", "interests")
 
 #let renderers = (
   profile: () => profile-section(cv.profile, labels),
@@ -43,6 +44,7 @@
   projects: () => projects-section(cv.projects, labels),
   skills: () => skills-aside(cv.skills, labels),
   languages: () => languages-aside(cv.languages, labels),
+  interests: () => interests-aside(cv.interests, labels),
 )
 
 // `cv.sections` is the list of sections that actually have content, in display

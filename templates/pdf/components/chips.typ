@@ -20,3 +20,22 @@
 // `none` for an empty list, so callers can drop the block entirely rather than
 // emitting an empty paragraph.
 #let chips-from(names) = if names.len() == 0 { none } else { chips(..names) }
+
+// A run of chips laid out per theme.sidebar.chip-layout. The single place that
+// reads the toggle, so skills and interests can never disagree about it.
+#let chip-run(names) = {
+  if names.len() == 0 {
+    none
+  } else if theme.sidebar.chip-layout == "wrapped" {
+    // Wrapped chips break onto new lines on paragraph leading, which is looser
+    // than the stacked gap. Matching them means "wrapped" is never taller than
+    // "stacked" for the same content - it only ever saves rows, never costs
+    // them, which is the whole point of the toggle.
+    block({
+      set par(leading: theme.sidebar.chip-gap)
+      chips(..names)
+    })
+  } else {
+    stack(dir: ttb, spacing: theme.sidebar.chip-gap, ..names.map(chip))
+  }
+}

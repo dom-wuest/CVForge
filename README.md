@@ -365,9 +365,10 @@ skills:
     items: ["Vulkan", "Slang", "GLSL", "CUDA"]   # bare names -> chips
 ```
 
-An item is either a **bare name**, which renders as a chip, or a **mapping with
-a `rating`** (1-5), which renders as a label with a small bar instead. See
-[Level bars](#level-bars).
+An item is either a **bare name**, which renders as a chip, or a **mapping**
+with an optional `rating` (1-5, draws a bar) and an optional `note` (a short
+muted line beneath). Either one promotes the item out of the chip run and onto
+a full-width row of its own. See [Level bars and notes](#level-bars-and-notes).
 
 ### `languages`
 
@@ -581,7 +582,7 @@ If the CV does overflow, the sidebar's vertical rule continues onto page two as
 a short stub. That is a symptom of the overflow, not a separate bug — fix the
 overflow.
 
-### Level bars
+### Level bars and notes
 
 A skill item or a language may carry an optional `rating` from 1 to 5. It
 renders as a short bar beside the name instead of a chip, and the bar is a
@@ -591,15 +592,21 @@ fixed width so the filled fraction is comparable between rows.
 skills:
   - group: "Programming"
     items:
-      - { name: "C++", rating: 5 }
-      - { name: "Python", rating: 4 }
-      - "Slang"          # no rating -> ordinary chip
+      - { name: "C++", rating: 5, note: "professional" }
+      - { name: "Rust", rating: 2, note: "personal projects" }
+      - "Slang"          # neither -> ordinary chip
 
 languages:
   - name: "German"
-    level: "native"
+    level: "native" # the note, in this section's own language
     rating: 5
 ```
+
+`note` is usually the more valuable of the two: a bar says *how much*, a note
+says *in what context*, and "professional" versus "personal projects" is the
+thing a reader is actually scanning for. A rated skill and a spoken language
+are the same shape — name, optional bar, muted line — and share one component,
+[components/bars.typ](templates/pdf/components/bars.typ).
 
 **Use it sparingly.** A bar against every skill turns into wallpaper, and it
 invites the reader to ask what the missing two fifths are — which is a question
@@ -608,6 +615,36 @@ vague: spoken languages, and the one or two languages you write daily.
 
 Geometry lives in `theme.bar`. Rated rows are padded by `chip.inset.y` so they
 occupy the same vertical space as a chip and the group keeps its rhythm.
+
+### `interests`
+
+Optional, sidebar only, rendered as plain chips.
+
+```yaml
+interests: ["Weight Lifting", "Hiking", "PC Modding", "Spaceflight"]
+```
+
+Keep these **non-technical**. Rendering, graphics and AI are already the
+tagline, the profile, the skills and every project — listing them again spends
+lines proving a point the CV has made four times over. The value of this
+section is the part the rest of the CV cannot show.
+
+### Chip layout in the sidebar
+
+`theme.sidebar.chip-layout` takes two values:
+
+| | |
+|---|---|
+| `wrapped` *(default)* | As many chips per row as fit. |
+| `stacked` | One chip per row. |
+
+`wrapped` is never taller than `stacked` for the same content — the wrapped
+run's line spacing is set to `chip-gap`, so it only ever saves rows. With the
+current data it saves about 17mm, which is what makes room for the interests
+section: `stacked` ends at 280mm against a 281mm content area.
+
+`stacked` is what the 28mm column was originally sized for and gives a cleaner
+right edge, so it is worth trying if you trim the skills list.
 
 ### Building without a photo
 
