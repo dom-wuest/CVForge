@@ -315,7 +315,18 @@ renders *Current Grade 1.2*; `final` renders *Grade 1.2*.
 
 ### `projects` *(optional)*
 
-Delete the whole key to omit the section — the PDF drops it automatically.
+Where projects appear is a single switch in `meta`:
+
+| `meta.projects_layout` | |
+|---|---|
+| `inline` *(default)* | In the main column with the other sections, as an ordinary timeline. |
+| `page` | On its own full-width page after the CV — no sidebar, and room for a screenshot beside each entry. Still one document, so the running footer numbers it. |
+| `omit` | Left out entirely. |
+
+Note it is `omit`, **not** `off`: YAML 1.1 would read an unquoted `off` as the
+boolean `false`. Deleting the whole `projects` key works too.
+
+`image` is only read by the `page` layout — the other two have no room for it.
 
 ```yaml
 projects:
@@ -328,6 +339,8 @@ projects:
     end: null
     url: "https://github.com/dom-wuest/example"    # optional
     url_label: "github.com/dom-wuest/example"      # optional; derived from url
+    url_note: "Code will be published after grading" # optional; shown when url is absent
+    image: "assets/projects/path-tracer.jpg"       # optional; `page` layout only
     highlights: ["Wavefront path tracing …"]       # optional
     tags: ["Vulkan", "Slang"]
 ```
@@ -496,10 +509,61 @@ chips (`ONNX Runtime`, `GitLab CI/CD`) sit on one line.
 The aside starts below the header, so it lines up with the first section
 heading whether or not there is a photo. Nothing special-cases the two cases.
 
+### The projects page
+
+`meta.projects_layout: page` puts projects on their own page after the CV. It
+has no sidebar, so the full width is available: each entry keeps the same
+timeline rail as the CV, with the title, repository link, description and chips
+on the left and a screenshot on the right.
+
+**Sizing the image column against the text.** Two keys, both in
+[templates/pdf/theme.typ](templates/pdf/theme.typ):
+
+| Key | |
+|---|---|
+| `projects.image-width` | Width of the image column. Currently `62mm`. |
+| `timeline.aside-gap` | Space between the text and the image. Currently `6mm`. |
+
+The text column is whatever is left — it is a `1fr`, so it absorbs the
+remainder and you never set it directly. On A4 with the current margins the
+arithmetic is:
+
+```
+176mm page content
+ - 17.4mm  timeline dates (theme.timeline.date-col, 5.2em)
+ -  5.0mm  rail gutter    (theme.timeline.gutter, 1.5em)
+ - 62.0mm  image          (theme.projects.image-width)
+ -  6.0mm  gap            (theme.timeline.aside-gap)
+ = 85.6mm  text
+```
+
+So widening the image by 10mm narrows the text by the same 10mm. Images are
+top-and-bottom centred against their entry, and drawn without a frame
+(`projects.image-stroke`).
+
+An entry with no `image` still reserves the column, so every entry's text has
+the same width and the page reads as one list rather than a ragged one.
+
+Images live in `assets/projects/`; `cvforge check` warns if a path does not
+resolve, because a missing image is a hard Typst error rather than a blank
+space. Use `url_note` for a project whose code is not public yet — it prints in
+italics where the repository link would go.
+
+A single-year entry (`start` and `end` the same) prints the year once rather
+than stacking it twice, and is nudged down by `theme.timeline.single-date-dy`
+so it centres on its node — the date is 8pt against a 10pt title, so without
+that it rides visibly high. Both apply everywhere, not just here.
+
+The running footer numbers pages from page 2 onward, so the projects page shows
+`2 / 2` and the CV page stays clean. If you would rather have `1 / 2` on the
+first page too, change `counter(page).get()` to `counter(page).final()` in
+[templates/pdf/template.typ](templates/pdf/template.typ).
+
 ### Fitting on one page
 
-Both CVs currently fit on one page, and `cvforge pdf` prints the page count so
-a regression is visible immediately:
+With `projects_layout: omit` both CVs fit on one page; with `page` they are
+two, the second being the projects page. `cvforge pdf` prints the count so a
+regression is visible immediately:
 
 ```
 wrote out/cv-de.pdf  (1 page)

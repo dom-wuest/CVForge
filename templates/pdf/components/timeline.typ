@@ -12,6 +12,8 @@
 // `end` is always a finished display string — the resolve step localises it,
 // including the "Present"/"heute" of an ongoing entry. `ongoing` only decides
 // whether to italicise it, so no language ever reaches this file.
+// `aside` puts content to the right of the whole entry - title included, not
+// just the body - which is what the projects page needs for its screenshots.
 #let tl-entry(
   start: "",
   end: "",
@@ -20,6 +22,7 @@
   org: "",
   meta: none,
   hollow: false,
+  aside: none,
   body,
 ) = {
   let node = place(
@@ -44,21 +47,42 @@
     // what keeps the node circle off the date text.
     align(right + top, pad(
       right: theme.timeline.date-pad,
+      // See theme.timeline.single-date-dy for why one line needs nudging down.
+      top: if end == start { theme.timeline.single-date-dy } else { 0pt },
       text(size: theme.timeline.date-size, fill: theme.muted, {
         start
-        linebreak()
-        if ongoing { text(style: "italic", end) } else { end }
+        // A single-year entry would otherwise read "2023" over "2023".
+        if end != start {
+          linebreak()
+          if ongoing { text(style: "italic", end) } else { end }
+        }
       }),
     )),
     { node; box() }, // gutter cell: the node sits on the rail
     {
-      text(weight: "bold", size: theme.timeline.title-size, title)
-      if org != "" [ #text(fill: theme.muted)[ | #org] ]
-      if meta != none {
-        linebreak()
-        text(size: theme.timeline.meta-size, fill: theme.muted, meta)
+      let entry = {
+        text(weight: "bold", size: theme.timeline.title-size, title)
+        if org != "" [ #text(fill: theme.muted)[ | #org] ]
+        if meta != none {
+          linebreak()
+          text(size: theme.timeline.meta-size, fill: theme.muted, meta)
+        }
+        if body != none { block(above: theme.timeline.body-gap, body) }
       }
-      if body != none { block(above: theme.timeline.body-gap, body) }
+      if aside == none {
+        entry
+      } else {
+        grid(
+          columns: (1fr, auto),
+          column-gutter: theme.timeline.aside-gap,
+          // horizon: the aside centres against the entry rather than hanging
+          // from its first line, which looks arbitrary when the two differ in
+          // height - and they always do.
+          align: (left + top, right + horizon),
+          entry,
+          aside,
+        )
+      }
     },
   )
 }
@@ -66,9 +90,9 @@
 // One `grid.vline` spanning the whole grid, NOT a segment per row. This is what
 // makes the rail survive a page break — per-entry strokes leave gaps at the
 // boundary and restart at the wrong offset.
-#let timeline(dashed: false, ..entries) = grid(
+#let timeline(dashed: false, row-gutter: auto, ..entries) = grid(
   columns: (theme.timeline.date-col, theme.timeline.gutter, 1fr),
-  row-gutter: theme.timeline.row-gutter,
+  row-gutter: if row-gutter == auto { theme.timeline.row-gutter } else { row-gutter },
   grid.vline(
     x: 1,
     stroke: (

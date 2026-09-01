@@ -17,7 +17,7 @@
 #import "sections/profile.typ": profile-section
 #import "sections/experience.typ": experience-section
 #import "sections/education.typ": education-section
-#import "sections/projects.typ": projects-section
+#import "sections/projects.typ": projects-page, projects-section
 #import "sections/skills.typ": skills-aside
 #import "sections/languages.typ": languages-aside
 
@@ -55,3 +55,14 @@
 }
 
 #two-column(render(MAIN-SECTIONS), render(ASIDE-SECTIONS))
+
+// Projects get a page of their own when the data asks for it: full width, no
+// sidebar, and room for a screenshot beside each entry. It stays part of this
+// document, so the running footer numbers it with the rest.
+//
+// `resolve` has already dropped `projects` from `cv.sections` for this layout,
+// so nothing renders twice, and removed the key entirely for layout "off".
+#if cv.meta.projects_layout == "page" and cv.at("projects", default: ()).len() > 0 {
+  pagebreak()
+  projects-page(cv.projects, labels)
+}

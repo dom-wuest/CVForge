@@ -170,6 +170,20 @@
   color: var(--cvf-accent);
 }
 
+/* ── Project screenshots ──────────────────────────────────────────────────── */
+/* The PDF floats these beside the entry on a dedicated page. Web is scroll and
+ * often narrow, so here they simply sit under the text at full width. */
+
+.cvf-shot {
+  display: block;
+  width: 100%;
+  max-width: 32rem;
+  height: auto;
+  margin: 0.6em 0;
+  border: 1px solid var(--cvf-chip-border);
+  border-radius: var(--cvf-radius);
+}
+
 /* ── Chips ────────────────────────────────────────────────────────────────── */
 
 .cvf-chips {

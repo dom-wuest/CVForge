@@ -251,18 +251,38 @@ def derive(data: dict[str, Any], lang: str, profile: str) -> dict[str, Any]:
         _add_dates(entry, lang, labels)
         entry["meta_line"] = _education_meta(entry, labels)
 
+    # Where the projects go is a layout choice, but it decides what the data
+    # even contains, so it is resolved here rather than in either renderer.
+    layout = data["meta"].get("projects_layout", "inline")
+    data["meta"]["projects_layout"] = layout
+    if layout == "omit":
+        data.pop("projects", None)
+
     for entry in data.get("projects", []):
         _add_dates(entry, lang, labels)
         entry["meta_line"] = _one_line(entry.get("role"))
+        entry.setdefault("image", None)
         if entry.get("url") and not entry.get("url_label"):
             entry["url_label"] = entry["url"].split("://", 1)[-1].rstrip("/")
 
     # Which sections actually have content, so main.typ does not need `if`s.
     data["sections"] = [
         name
-        for name in ("profile", "experience", "education", "projects", "skills", "languages")
+        for name in (
+            "profile",
+            "experience",
+            "education",
+            "projects",
+            "skills",
+            "languages",
+        )
         if data.get(name)
     ]
+    # A projects *page* is not part of the main flow. Dropping it from
+    # `sections` is what keeps main.typ free of layout conditionals: it renders
+    # the list it is given, then asks once whether a projects page follows.
+    if layout != "inline":
+        data["sections"] = [name for name in data["sections"] if name != "projects"]
     return data
 
 

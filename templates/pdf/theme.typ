@@ -131,9 +131,30 @@
     // colliding with the date text. Removing it reintroduces the overlap.
     date-pad: 0.7em,
     date-size: 8pt,
+    // A single-date entry (start == end) prints one line. The date is 8pt
+    // and the title 10pt, and both are top-aligned, so the smaller text
+    // rides ~1.2mm above the node. This drops it back onto the node's
+    // centre. Calibrated against date-size vs title-size; retune if either
+    // changes. Two-line dates do not need it - the pair reads as centred.
+    single-date-dy: 3.4pt,
     title-size: 10pt,
     meta-size: 8pt,
     body-gap: 0.5em, // title/meta -> body
+    aside-gap: 6mm, // entry -> its right-hand aside (projects page)
+  ),
+
+  // ── Projects page ─────────────────────────────────────────────────────────
+  // Only used by the standalone projects page, which has no sidebar and so has
+  // room for a screenshot beside each entry.
+  projects: (
+    image-width: 50mm,
+    image-radius: 2.5pt,
+    // No frame: a border competes with the images' own edges, and a tinted
+    // one fights any screenshot that is not white. Set e.g.
+    // `0.5pt + rgb("#a8c6e4")` to bring it back.
+    image-stroke: none,
+    url-size: 8pt,
+    row-gutter: 1.9em, // looser than the CV timeline; these entries are taller
   ),
 
   // ── Skills grid ───────────────────────────────────────────────────────────

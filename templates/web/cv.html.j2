@@ -77,6 +77,10 @@
       {% if e.url %}
       <p class="cvf-link"><a href="{{ e.url }}">{{ e.url_label or e.url }}</a></p>
       {% endif %}
+      {% if e.image %}
+      {# TODO(html): copy project images into out/ and point src at the deployed path. #}
+      <img class="cvf-shot" src="{{ e.image }}" alt="{{ e.name }}" loading="lazy">
+      {% endif %}
       {% if e.tags %}
       <ul class="cvf-chips">
         {% for t in e.tags %}<li class="cvf-chip">{{ t }}</li>{% endfor %}

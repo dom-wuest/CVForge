@@ -45,6 +45,14 @@
             "string",
             "null"
           ]
+        },
+        "projects_layout": {
+          "description": "Where the projects section goes. 'inline': in the main column with the other sections, as an ordinary timeline. 'page': on its own full-width page after the CV, with room for a screenshot beside each entry. 'omit': left out entirely. Default 'inline'. (Named 'omit' rather than 'off' because YAML 1.1 turns an unquoted off into the boolean false.)",
+          "enum": [
+            "inline",
+            "page",
+            "omit"
+          ]
         }
       }
     },
@@ -291,6 +299,20 @@
           },
           "tags": {
             "$ref": "#/$defs/tags"
+          },
+          "image": {
+            "description": "Repo-relative path to a screenshot. Shown only by the standalone projects page ('page' layout), which is the only layout with room for it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url_note": {
+            "description": "Shown in italics in place of the repository link when there is no `url` yet, e.g. 'Code will be published after grading'. Ignored when `url` is set.",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }

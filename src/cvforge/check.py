@@ -42,6 +42,7 @@ def check(langs: tuple[str, ...] = i18n.LANGS) -> int:
 
         warnings += _check_tags(data, lang)
         warnings += _check_photo(data, lang)
+        warnings += _check_images(data, lang)
         warnings += _check_ids(data, lang)
 
     if not checked:
@@ -72,12 +73,15 @@ def _check_tags(data: dict[str, Any], lang: str) -> list[str]:
     which trains you to ignore the ones that matter.
     """
     # Raw YAML shape here, before resolve normalises it, so an item is either
-    # a bare string or a mapping with a name.
+    # a bare string or a mapping with a name. Group names count too: tagging a
+    # project "Machine Learning" is legitimate even though that is a heading
+    # rather than a listed item.
     known = {
         (item if isinstance(item, str) else item["name"]).casefold()
         for group in data.get("skills", [])
         for item in group["items"]
     }
+    known |= {group["group"].casefold() for group in data.get("skills", [])}
     out = []
     for section in ("experience", "projects"):
         for entry in data.get(section, []):
@@ -94,6 +98,16 @@ def _check_photo(data: dict[str, Any], lang: str) -> list[str]:
     if photo and not (paths.ROOT / photo).is_file():
         return [f"[{lang}] meta.photo points at {photo}, which does not exist"]
     return []
+
+
+def _check_images(data: dict[str, Any], lang: str) -> list[str]:
+    """A missing screenshot is a hard Typst error, so catch it here first."""
+    out = []
+    for entry in data.get("projects", []):
+        picture = entry.get("image")
+        if picture and not (paths.ROOT / picture).is_file():
+            out.append(f"[{lang}] projects.{entry['id']}: image {picture} does not exist")
+    return out
 
 
 def _check_ids(data: dict[str, Any], lang: str) -> list[str]:
