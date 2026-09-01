@@ -42,13 +42,15 @@ contacts:
   - id: linkedin
     icon: linkedin
     brand: true
-    value: "dom-wuest"
+    # The domain earns its place: on paper the bare handle is not typeable,
+    # and ATS URL extraction matches on "linkedin.com/in/", not on a username.
+    value: "linkedin.com/in/dom-wuest"
     url: "https://linkedin.com/in/dom-wuest"
 
   - id: github
     icon: github
     brand: true
-    value: "dom-wuest"
+    value: "github.com/dom-wuest"
     url: "https://github.com/dom-wuest"
 
   - id: website
@@ -146,7 +148,6 @@ education:
     grade: "1.2"
     grade_note: final
 
-# Optional section. Delete the whole key to omit it from both renderers.
 # projects:
 #   - id: example-project
 #     name: "Real-Time Path Tracer"
@@ -164,8 +165,13 @@ education:
 skills:
   # Group names must not collide with the `languages` section below - both
   # render in the sidebar, one above the other.
+  # An item may be a bare name, or a name with a 1-5 `rating` that renders as
+  # a small bar instead of a chip. Use it sparingly - a bar against every skill
+  # reads as wallpaper. PLACEHOLDER VALUES: adjust to your own judgement.
   - group: "Programming"
-    items: ["C++", "Python"]
+    items:
+      - { name: "C++", rating: 5 }
+      - { name: "Python", rating: 4 }
   - group: "Graphics & GPU"
     items: ["Vulkan", "Slang", "GLSL", "CUDA"]
   - group: "Machine Learning"
@@ -180,5 +186,7 @@ skills:
 languages:
   - name: "German"
     level: "native"
+    rating: 5
   - name: "English"
     level: "fluent"
+    rating: 4

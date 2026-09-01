@@ -116,7 +116,13 @@
       <dt>{{ g.group }}</dt>
       <dd>
         <ul class="cvf-chips">
-          {% for item in g['items'] %}<li class="cvf-chip">{{ item }}</li>{% endfor %}
+          {% for item in g['items'] %}
+          {% if item.rating %}
+          <li class="cvf-rated"><span class="cvf-rated-name">{{ item.name }}</span><span class="cvf-bar" style="--cvf-fill: {{ (item.rating / 5 * 100) | round | int }}%" role="img" aria-label="{{ item.rating }} out of 5"></span></li>
+          {% else %}
+          <li class="cvf-chip">{{ item.name }}</li>
+          {% endif %}
+          {% endfor %}
         </ul>
       </dd>
       {% endfor %}
@@ -129,7 +135,11 @@
     <h2>{{ labels.languages }}</h2>
     <ul class="cvf-languages">
       {% for l in cv.languages %}
-      <li><span class="cvf-lang-name">{{ l.name }}</span> <span class="cvf-lang-level">{{ l.level }}</span></li>
+      <li>
+        <span class="cvf-lang-name">{{ l.name }}</span>
+        <span class="cvf-lang-level">{{ l.level }}</span>
+        {% if l.rating %}<span class="cvf-bar" style="--cvf-fill: {{ (l.rating / 5 * 100) | round | int }}%" role="img" aria-label="{{ l.rating }} out of 5"></span>{% endif %}
+      </li>
       {% endfor %}
     </ul>
   </section>

@@ -44,6 +44,18 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
+def _branch_errors(err: Any, limit: int = 3) -> list[str]:
+    """Distinct complaints from the branches of a failed oneOf/anyOf."""
+    seen: list[str] = []
+    # Deepest path first: a complaint about a specific field is more useful
+    # than one about the whole value.
+    for sub in sorted(err.context or [], key=lambda e: -len(list(e.absolute_path))):
+        message = sub.message if not list(sub.absolute_path) else f"{sub.json_path}: {sub.message}"
+        if message not in seen:
+            seen.append(message)
+    return seen[:limit]
+
+
 def validate(data: dict[str, Any], lang: str) -> None:
     """Validate against schema/cv.schema.json, reporting the offending node.
 
@@ -59,6 +71,13 @@ def validate(data: dict[str, Any], lang: str) -> None:
         lines = [f"{paths.source(lang).name} failed validation:"]
         for err in errors[:10]:
             lines.append(f"  at {err.json_path}: {err.message}")
+            # A `oneOf` (a skills item is a name *or* a {name, rating} mapping)
+            # only reports "is not valid under any of the given schemas", which
+            # says nothing about what is actually wrong. There is no reliable
+            # way to guess which branch was intended, so show what each one
+            # objected to and let the reader recognise their own mistake.
+            for sub in _branch_errors(err):
+                lines.append(f"      - {sub}")
         if len(errors) > 10:
             lines.append(f"  ... and {len(errors) - 10} more")
         raise ResolveError("\n".join(lines))
@@ -161,6 +180,18 @@ def _clean(value: Any) -> Any:
     return value
 
 
+def _skill_item(item: Any) -> dict[str, Any]:
+    """Normalise a skills entry to {name, rating}.
+
+    The YAML accepts either a bare string or a mapping with a rating, because
+    most items want neither the noise nor the claim. The renderers should not
+    have to care, so they always get the mapping.
+    """
+    if isinstance(item, str):
+        return {"name": item, "rating": None}
+    return {"name": item["name"], "rating": item.get("rating")}
+
+
 def _one_line(value: str | None) -> str | None:
     """Collapse to a single line, for fields composed into a meta line."""
     return " ".join(value.split()) if value else None
@@ -204,6 +235,13 @@ def derive(data: dict[str, Any], lang: str, profile: str) -> dict[str, Any]:
     data = _clean(data)
     data["labels"] = labels
     data["meta"]["profile"] = profile
+
+    # Ratings are opt-in per item; normalise both shapes to one so neither
+    # renderer needs a branch for the shorthand.
+    for group in data.get("skills", []):
+        group["items"] = [_skill_item(item) for item in group["items"]]
+    for entry in data.get("languages", []):
+        entry.setdefault("rating", None)
 
     for entry in data.get("experience", []):
         _add_dates(entry, lang, labels)

@@ -99,6 +99,20 @@
     text-darken: 20%,
   ),
 
+  // ── Level bars ────────────────────────────────────────────────────────────
+  // Optional per-item proficiency indicator, opt-in through a `rating` in the
+  // data. Deliberately not automatic: a column of bars against every skill
+  // says less than a few well-chosen ones, and invites the reader to wonder
+  // what the missing two fifths are.
+  bar: (
+    scale: 5, // ratings are 1..5; the schema enforces it
+    width: 11mm,
+    height: 2.2pt,
+    radius: 1.1pt,
+    gap: 1.5mm, // label -> bar
+    track-lighten: 80%, // the unfilled remainder
+  ),
+
   // ── Timeline ──────────────────────────────────────────────────────────────
   timeline: (
     // Do not shrink this to buy width: at 4.5em "Mar 2026" and "May 2025"

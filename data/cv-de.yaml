@@ -42,13 +42,15 @@ contacts:
   - id: linkedin
     icon: linkedin
     brand: true
-    value: "dom-wuest"
+    # The domain earns its place: on paper the bare handle is not typeable,
+    # and ATS URL extraction matches on "linkedin.com/in/", not on a username.
+    value: "linkedin.com/in/dom-wuest"
     url: "https://linkedin.com/in/dom-wuest"
 
   - id: github
     icon: github
     brand: true
-    value: "dom-wuest"
+    value: "github.com/dom-wuest"
     url: "https://github.com/dom-wuest"
 
   - id: website
@@ -155,8 +157,13 @@ skills:
   # Gruppennamen duerfen nicht mit dem Abschnitt `languages` kollidieren -
   # beide stehen in der Seitenspalte direkt uebereinander. "Sprachen" waere
   # zweimal dasselbe Wort.
+  # Ein Eintrag ist entweder nur ein Name oder ein Name mit `rating` (1-5),
+  # das statt eines Chips einen kleinen Balken rendert. Sparsam einsetzen.
+  # PLATZHALTERWERTE: bitte anpassen.
   - group: "Programmierung"
-    items: ["C++", "Python"]
+    items:
+      - { name: "C++", rating: 5 }
+      - { name: "Python", rating: 4 }
   - group: "Grafik & GPU"
     items: ["Vulkan", "Slang", "GLSL", "CUDA"]
   - group: "Machine Learning"
@@ -171,5 +178,7 @@ skills:
 languages:
   - name: "Deutsch"
     level: "Muttersprache"
+    rating: 5
   - name: "Englisch"
     level: "verhandlungssicher"
+    rating: 4

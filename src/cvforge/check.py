@@ -71,7 +71,13 @@ def _check_tags(data: dict[str, Any], lang: str) -> list[str]:
     skills list. Checking them would emit warnings that can never be resolved,
     which trains you to ignore the ones that matter.
     """
-    known = {item.casefold() for group in data.get("skills", []) for item in group["items"]}
+    # Raw YAML shape here, before resolve normalises it, so an item is either
+    # a bare string or a mapping with a name.
+    known = {
+        (item if isinstance(item, str) else item["name"]).casefold()
+        for group in data.get("skills", [])
+        for item in group["items"]
+    }
     out = []
     for section in ("experience", "projects"):
         for entry in data.get(section, []):

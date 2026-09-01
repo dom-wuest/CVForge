@@ -186,6 +186,47 @@
   color: var(--cvf-accent);
 }
 
+/* ── Level bars ───────────────────────────────────────────────────────────── */
+/* Opt-in per item via `rating` in the data. The fill comes through as an
+ * inline --cvf-fill custom property, because CSS cannot read a data attribute
+ * into a width. */
+
+.cvf-rated {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  font-size: 0.85em;
+}
+
+.cvf-rated-name {
+  font-weight: 600;
+}
+
+.cvf-bar {
+  flex: none;
+  display: inline-block;
+  width: 4.5rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--cvf-chip-border);
+}
+
+.cvf-bar::before {
+  content: "";
+  display: block;
+  width: var(--cvf-fill, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cvf-accent);
+}
+
+.cvf-languages li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* ── Skills ───────────────────────────────────────────────────────────────── */
 
 .cvf-skills {

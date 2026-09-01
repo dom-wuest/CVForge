@@ -258,6 +258,12 @@ contacts:
 | `value` | Required. The displayed text. |
 | `url` | Optional. Makes it a link. |
 | `brand` | `true` for `github`, `linkedin`, … (Brands font has no solid variant). |
+
+**Write profile links as `linkedin.com/in/handle`, not just `handle`.** The
+icon tells a human which platform it is, but the bare handle is not typeable
+from a printed page, and ATS URL extraction matches on the domain rather than
+on a username. Drop the `https://www.` — it is noise. Keep the full URL in
+`url` so the PDF stays clickable.
 | `private` | `hidden` or `refine` — see [Private data](#private-data). |
 
 ### `profile`
@@ -338,11 +344,17 @@ would be the identical word `Sprachen`. Use `Programming` / `Programmierung`.
 
 ```yaml
 skills:
-  - group: "Languages"
-    items: ["C++", "Python"]
-  - group: "Graphics"
-    items: ["Vulkan", "Slang", "GLSL"]
+  - group: "Programming"
+    items:
+      - { name: "C++", rating: 5 }   # optional 1-5 bar
+      - { name: "Python", rating: 4 }
+  - group: "Graphics & GPU"
+    items: ["Vulkan", "Slang", "GLSL", "CUDA"]   # bare names -> chips
 ```
+
+An item is either a **bare name**, which renders as a chip, or a **mapping with
+a `rating`** (1-5), which renders as a label with a small bar instead. See
+[Level bars](#level-bars).
 
 ### `languages`
 
@@ -352,6 +364,7 @@ skills:
 languages:
   - name: "German"
     level: "native"
+    rating: 5 # optional, 1-5
 ```
 
 ### Multilingual
@@ -503,6 +516,34 @@ space.
 If the CV does overflow, the sidebar's vertical rule continues onto page two as
 a short stub. That is a symptom of the overflow, not a separate bug — fix the
 overflow.
+
+### Level bars
+
+A skill item or a language may carry an optional `rating` from 1 to 5. It
+renders as a short bar beside the name instead of a chip, and the bar is a
+fixed width so the filled fraction is comparable between rows.
+
+```yaml
+skills:
+  - group: "Programming"
+    items:
+      - { name: "C++", rating: 5 }
+      - { name: "Python", rating: 4 }
+      - "Slang"          # no rating -> ordinary chip
+
+languages:
+  - name: "German"
+    level: "native"
+    rating: 5
+```
+
+**Use it sparingly.** A bar against every skill turns into wallpaper, and it
+invites the reader to ask what the missing two fifths are — which is a question
+you gain nothing by raising. It earns its place where the words are genuinely
+vague: spoken languages, and the one or two languages you write daily.
+
+Geometry lives in `theme.bar`. Rated rows are padded by `chip.inset.y` so they
+occupy the same vertical space as a chip and the group keeps its rhythm.
 
 ### Building without a photo
 

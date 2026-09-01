@@ -20,12 +20,3 @@
 // `none` for an empty list, so callers can drop the block entirely rather than
 // emitting an empty paragraph.
 #let chips-from(names) = if names.len() == 0 { none } else { chips(..names) }
-
-// Stacked one-per-row, for the narrow sidebar. Wrapping chips inline needs a
-// column roughly 45mm wide; stacking them lets it be 28mm, and the width saved
-// goes back to the main column where the tall content lives.
-#let chips-column(names) = stack(
-  dir: ttb,
-  spacing: theme.sidebar.chip-gap,
-  ..names.map(chip),
-)
