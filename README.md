@@ -3,7 +3,9 @@
 One CV, written once as data, rendered to two targets:
 
 - **A4 PDF** for job applications — typeset with [Typst](https://typst.app)
-- **HTML fragment + stylesheet** for embedding into dom-wuest.de *(scaffolded, not yet implemented)*
+- **The website** — the public CV data and PDFs, exported into the
+  [Portfolio](https://github.com/dom-wuest/Portfolio) repo, which renders them
+  on dom-wuest.de/about/
 
 The content lives in `data/cv-<lang>.yaml`. Everything else is a renderer. Your
 phone number and street address live in a gitignored file and never reach a
@@ -11,8 +13,8 @@ tracked file or the website.
 
 ```
 data/cv-en.yaml ─┐
-data/cv-de.yaml ─┼─→ build/cv-<lang>.json ─┬─→ out/cv-<lang>.pdf
-data/private.yaml┘   (the resolved artifact)└─→ out/cv-<lang>.html + out/cv.css
+data/cv-de.yaml ─┼─→ build/cv-<lang>.json ─┬─→ out/cv-<lang>.pdf        (profile=full)
+data/private.yaml┘   (the resolved artifact)└─→ the website's data/ + static/  (profile=public)
    (gitignored)
 ```
 
@@ -33,6 +35,7 @@ touching the data.
 - [How to add an experience entry](#how-to-add-an-experience-entry)
 - [Project layout](#project-layout)
 - [Styling the PDF](#styling-the-pdf)
+- [Publishing to the website](#publishing-to-the-website)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -72,10 +75,10 @@ install, and identical behaviour on Windows, Linux and CI.
 | Command | Does |
 |---|---|
 | `uv run cvforge pdf --lang en` | Resolve, then compile `out/cv-en.pdf` |
-| `uv run cvforge html --lang en` | Resolve (always public), then write `out/cv-en.html` + `out/cv.css` |
+| `uv run cvforge export --to <site>` | Resolve both languages as public, then write the website's data files and PDFs |
 | `uv run cvforge resolve --lang en` | Just the data step → `build/cv-en.json` |
 | `uv run cvforge dev --lang en` | Watch `data/`, regenerate the JSON on every save |
-| `uv run cvforge all` | Every PDF and HTML output, for every language present |
+| `uv run cvforge all` | The PDF for every language present |
 | `uv run cvforge check` | Validate the data, report content warnings |
 | `uv run cvforge check-clean` | Fail if a private value reached `build/` or `out/` |
 
@@ -145,7 +148,7 @@ and `url` can be overridden.
 
 ### The two profiles
 
-| | `--profile full` (default for `pdf`) | `--profile public` (forced for `html`) |
+| | `--profile full` (default for `pdf`) | `--profile public` (forced for `export`) |
 |---|---|---|
 | `private.yaml` | Merged in, if present | **Ignored entirely**, even if present |
 | `private: hidden` contact | Real value | Contact dropped completely |
@@ -170,13 +173,17 @@ public form is fine but the application wants more precision.
 
 1. `.gitignore` blocks `data/private.yaml`, `build/` and `out/`
 2. Committed data holds placeholders only — a broken `.gitignore` still leaks nothing
-3. `resolve` stamps `meta.profile` into the artifact, and the HTML renderer
-   **refuses to run** on anything that is not `public`
+3. `resolve` stamps `meta.profile` into the artifact. `export` re-reads it and
+   refuses to publish anything that is not `public`, and the website's Hugo
+   template **fails its build** on the same condition — so the guarantee is
+   enforced on both sides of the repository boundary, not merely trusted
+   across it
 4. `uv run cvforge check-clean` greps the generated artifacts for every value
    in `private.yaml`, including a digits-only form of the phone number
 
-**Run `check-clean` before publishing HTML to your website.** Publishing is a
-one-way action; this check costs a second.
+`export` runs `check-clean` over exactly the files it just wrote and refuses to
+finish if anything matches. Publishing is a one-way action, so this is not
+optional and not something you have to remember.
 
 If `private.yaml` does not exist, everything still builds — placeholders are
 used and one informational line is printed. A fresh clone and CI need no
@@ -214,7 +221,7 @@ meta: "Current Grade 1.2"   # no
 ```
 
 The renderers compose the display string. This is the rule that makes a second
-renderer possible at all — the HTML version needs the same facts in a different
+renderer possible at all — the website needs the same facts in a different
 shape.
 
 Entry order in the file is display order. Nothing is sorted downstream.
@@ -438,21 +445,21 @@ the two files to agree — that is deliberate.
 ```
 data/            The CV content. This is the source of truth.
 schema/          JSON Schema for the above; wired into VS Code.
-src/cvforge/     resolve (YAML -> JSON), dates, i18n, the CLI, the HTML stub.
+src/cvforge/     resolve (YAML -> JSON), dates, i18n, the CLI.
 templates/pdf/   The Typst renderer.
   theme.typ        All design tokens. No magic numbers live anywhere else.
   template.typ     Page geometry and the set/show rules.
   components/      header, contact row, chips, timeline.
   sections/        One module per CV section.
   main.typ         Document assembly only.
-templates/web/   The HTML renderer (scaffold).
 assets/          Avatar and the committed fonts.
 build/  out/     Generated. Both gitignored.
 ```
 
-The two themes are **independent on purpose**. `templates/pdf/theme.typ` is
-tuned for A4; `templates/web/cv.css` is meant to be adapted to the host site.
-They only have to cover the same data, not the same values.
+Presentation for the web lives in the **website** repo, not here: a Hugo
+partial and a small stylesheet that can use the site's own theme classes. This
+repo owns the content; Portfolio owns how it looks. See
+[Publishing to the website](#publishing-to-the-website).
 
 ---
 
@@ -657,8 +664,54 @@ meta:
 ```
 
 The header collapses to full width, the aside still starts level with the
-`PROFILE` heading, and the HTML fragment drops the `<img>` too. Remember to
+`PROFILE` heading. Remember to
 revert it afterwards.
+
+---
+
+## Publishing to the website
+
+The CV sections on [dom-wuest.de/about/](https://dom-wuest.de/about/) are
+rendered by the [Portfolio](https://github.com/dom-wuest/Portfolio) repo from
+data exported out of here. One command writes everything it needs:
+
+```bash
+uv run cvforge export --to ../Website/Portfolio
+```
+
+It resolves both languages as **public** — not overridable, because this writes
+into a public repository — copies the resolved artifacts to `data/cv/{en,de}.json`,
+compiles public-profile PDFs into `static/files/`, and runs `check-clean` over
+exactly those files before declaring success. It refuses to run at all unless
+the target contains `config/_default/hugo.yaml`, so a mistyped path fails loudly
+instead of scattering files somewhere unexpected.
+
+The public PDFs go straight to the website and never touch `out/`, so the
+full-profile PDF you send with applications is not silently replaced.
+
+### When you change the CV
+
+```bash
+uv run cvforge check                          # validate
+uv run cvforge export --to ../Website/Portfolio
+```
+
+Then commit both repos and **cut a release in the website repo** — it deploys on
+`release: published`, not on push.
+
+### When you change how the CV looks on the site
+
+Edit `layouts/partials/cv.html` or `assets/css/custom.css` in Portfolio. Nothing
+here changes and nothing needs re-exporting. That split is the point: content in
+this repo, presentation in that one.
+
+### Why a file copy rather than automation
+
+CVForge is private. Anything that *pulls* — a submodule, a CI fetch — needs a
+token in the public repo's secrets, breaks for pull requests from forks, and
+makes a public build depend on a private repo staying reachable. A local copy
+needs none of that, and since the site only deploys on a published release,
+automating the copy would not save a step anyway.
 
 ---
 

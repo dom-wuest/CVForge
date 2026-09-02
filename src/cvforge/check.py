@@ -171,8 +171,13 @@ def _private_needles() -> list[tuple[str, str]]:
     return needles
 
 
-def check_clean(dirs: tuple[Path, ...] = (paths.BUILD, paths.OUT)) -> int:
-    """Fail if any private value reached the generated artifacts."""
+def check_clean(targets: tuple[Path, ...] = (paths.BUILD, paths.OUT)) -> int:
+    """Fail if any private value reached the generated artifacts.
+
+    Each target may be a directory to walk or a single file. `export` passes
+    the exact files it just wrote, so its report does not sweep in unrelated
+    documents that happen to share the website's static/files directory.
+    """
     if not paths.PRIVATE.is_file():
         print("no data/private.yaml - nothing to check")
         return 0
@@ -186,29 +191,33 @@ def check_clean(dirs: tuple[Path, ...] = (paths.BUILD, paths.OUT)) -> int:
     hits: list[str] = []
     skipped_binary: list[str] = []
 
-    for root in dirs:
-        if not root.is_dir():
+    candidates: list[Path] = []
+    for target in targets:
+        if target.is_file():
+            candidates.append(target)
+        elif target.is_dir():
+            candidates += sorted(p for p in target.rglob("*") if p.is_file())
+
+    for path in candidates:
+        rel = paths.display(path)
+        if path.suffix.lower() not in TEXT_SUFFIXES:
+            skipped_binary.append(rel)
             continue
-        for path in sorted(root.rglob("*")):
-            if not path.is_file():
-                continue
-            rel = path.relative_to(paths.ROOT).as_posix()
-            if path.suffix.lower() not in TEXT_SUFFIXES:
-                skipped_binary.append(rel)
-                continue
-            scanned += 1
-            text = path.read_text(encoding="utf-8", errors="replace")
-            for trail, needle in needles:
-                if needle in text:
-                    hits.append(f"{rel}: contains private value from {trail}")
+        scanned += 1
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for trail, needle in needles:
+            if needle in text:
+                hits.append(f"{rel}: contains private value from {trail}")
 
     print(f"scanned {scanned} text artifact(s) for {len(needles)} private value(s)")
 
     if skipped_binary:
-        # PDFs legitimately contain the phone number under --profile full; the
-        # point of this check is the web output, so say what was not scanned
-        # rather than pretending full coverage.
-        print("not scanned (binary, expected to contain private data under profile=full):")
+        # Say what was not covered rather than implying full coverage. A PDF is
+        # compressed, so a literal grep cannot see inside one. Under
+        # profile=full it is *supposed* to carry the phone number; under
+        # profile=public `export` guarantees it differently, by asserting the
+        # artifact it renders from is public before Typst ever runs.
+        print("not scanned (compressed; a literal grep cannot see inside a PDF):")
         for rel in skipped_binary:
             print(f"  {rel}")
 

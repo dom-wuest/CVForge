@@ -33,6 +33,18 @@ PDF_MAIN = TEMPLATES / "pdf" / "main.typ"
 WEB_TEMPLATES = TEMPLATES / "web"
 
 
+def display(path: Path) -> str:
+    """Repo-relative where possible, absolute otherwise.
+
+    `export` writes into the website's working copy, which is outside the repo,
+    and Path.relative_to raises rather than reaching upward.
+    """
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def source(lang: str) -> Path:
     return DATA / f"cv-{lang}.yaml"
 
