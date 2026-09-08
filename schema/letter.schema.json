@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dom-wuest.de/cvforge/letter.schema.json",
+  "title": "CVForge cover letter",
+  "description": "One application's cover letter. The sender - your name, tagline, contacts, address and signature - is NOT here: it is read from data/cv-<lang>.yaml and data/private.yaml, so the letterhead can never disagree with the CV.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "recipient",
+    "job",
+    "body"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lang",
+        "slug"
+      ],
+      "properties": {
+        "lang": {
+          "description": "Language of this letter. Picks the data/cv-<lang>.yaml the sender identity is read from, and the label set used for the subject, salutation and closing.",
+          "enum": [
+            "en",
+            "de"
+          ]
+        },
+        "slug": {
+          "description": "Must match the directory name under applications/. Keeps a copied letter.yaml from silently building under the wrong name.",
+          "$ref": "#/$defs/slug"
+        },
+        "date": {
+          "description": "The date the letter is sent, as a quoted \"YYYY-MM-DD\". Omit or null for the build date, which is what you want right up until you build a letter you already sent.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+        }
+      }
+    },
+    "recipient": {
+      "description": "The address field. Company postal addresses are public imprint data and are tracked; anything about a person beyond the name in the salutation belongs in the gitignored dossier.yaml.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "company"
+      ],
+      "properties": {
+        "company": {
+          "type": "string",
+          "minLength": 1
+        },
+        "department": {
+          "description": "Optional line under the company, e.g. 'Personalabteilung' or a team name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "person": {
+          "description": "Named recipient, e.g. 'Frau Anna Beispiel'. Printed in the address field. Does NOT compose the salutation - German forms of address need a gender the data does not carry, so set `salutation` explicitly when you want a named one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "salutation": {
+          "description": "The full salutation line including its comma, e.g. 'Sehr geehrte Frau Beispiel,'. Omit for the generic form for this language.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "street": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "postal_code": {
+          "description": "Quoted - a German postcode like \"01067\" loses its leading zero as a number.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "country": {
+          "description": "Printed only when set. Leave it out for a domestic recipient.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "title": {
+          "description": "The role as the posting words it. Composes the subject line.",
+          "type": "string",
+          "minLength": 1
+        },
+        "reference": {
+          "description": "Kennziffer / requisition id. Rendered in the info block beside the address field and appended to the subject. A posting that carries one usually expects to see it back.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "description": "Where you found it, as a full phrase in this letter's language, e.g. 'Ihre Anzeige auf StepStone vom 04.09.2026'. Rendered in the info block.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "The posting URL. Recorded, never rendered - a printed letter cannot be clicked. The archived copy belongs in the gitignored posting/ directory.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "subject": {
+      "description": "Overrides the composed subject line entirely. Composed form is '<prefix> <job.title>' plus the reference when there is one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sender_contacts": {
+      "description": "Which contacts appear in the letterhead, by their id in data/cv-<lang>.yaml. Omit for all of them. The letterhead has to fit above the address field, so a long contact row is the first thing to trim here.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "body": {
+      "description": "The paragraphs, in order. Use folded (>) scalars.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "closing": {
+      "description": "Overrides the closing formula, e.g. 'Mit freundlichen Gruessen'. Omit for this language's default.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "enclosures": {
+      "description": "The 'Anlagen:' line under the signature. Omit for none.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "description": "Lowercase kebab-case. Date-prefixing (2026-09-acme-…) sorts the applications directory chronologically.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "id": {
+      "description": "A contact id from data/cv-<lang>.yaml.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    }
+  }
+}

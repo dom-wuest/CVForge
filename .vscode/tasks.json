@@ -35,6 +35,32 @@
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
+      "label": "Letter: New application",
+      "detail": "Scaffolds applications/<slug>/ from the template.",
+      "type": "shell",
+      "command": "uv run cvforge new ${input:slug} --lang ${input:lang}",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "Letter: Build send-ready folder",
+      "detail": "Letter + matching CV into out/applications/<slug>/.",
+      "type": "shell",
+      "command": "uv run cvforge apply ${input:slug}",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "Letter: Dev watch",
+      "detail": "Regenerates build/letter-preview.json. Pair with Tinymist: Preview on templates/letter/main.typ.",
+      "type": "shell",
+      "command": "uv run cvforge dev --letter ${input:slug}",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
       "label": "CV: Check data",
       "type": "shell",
       "command": "uv run cvforge check",
@@ -49,6 +75,20 @@
       "group": "test",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "slug",
+      "type": "promptString",
+      "description": "Application slug (the directory name under applications/)"
+    },
+    {
+      "id": "lang",
+      "type": "pickString",
+      "options": ["de", "en"],
+      "default": "de",
+      "description": "Language of the letter"
     }
   ]
 }

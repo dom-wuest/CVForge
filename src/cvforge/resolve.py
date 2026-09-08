@@ -56,19 +56,22 @@ def _branch_errors(err: Any, limit: int = 3) -> list[str]:
     return seen[:limit]
 
 
-def validate(data: dict[str, Any], lang: str) -> None:
-    """Validate against schema/cv.schema.json, reporting the offending node.
+def validate_against(data: dict[str, Any], schema_path: Path, label: str) -> None:
+    """Validate against a JSON Schema, reporting the offending node.
 
     The schema's `type: string` on dates is what catches an unquoted `2021-10`,
     which yaml.safe_load silently turns into a datetime.date.
+
+    `label` names the source file in the error, so the reader knows which of
+    several YAML files is being complained about.
     """
     import jsonschema
 
-    schema = json.loads(paths.SCHEMA.read_text(encoding="utf-8"))
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
     validator = jsonschema.Draft202012Validator(schema)
     errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
     if errors:
-        lines = [f"{paths.source(lang).name} failed validation:"]
+        lines = [f"{label} failed validation:"]
         for err in errors[:10]:
             lines.append(f"  at {err.json_path}: {err.message}")
             # A `oneOf` (a skills item is a name *or* a {name, rating} mapping)
@@ -81,6 +84,11 @@ def validate(data: dict[str, Any], lang: str) -> None:
         if len(errors) > 10:
             lines.append(f"  ... and {len(errors) - 10} more")
         raise ResolveError("\n".join(lines))
+
+
+def validate(data: dict[str, Any], lang: str) -> None:
+    """Validate one CV file, then check it declares the language it is named for."""
+    validate_against(data, paths.CV_SCHEMA, paths.source(lang).name)
 
     declared = data["meta"]["lang"]
     if declared != lang:
@@ -158,7 +166,7 @@ def merge_private(data: dict[str, Any], profile: str, *, quiet: bool = False) ->
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _clean(value: Any) -> Any:
+def clean(value: Any) -> Any:
     """Normalise the whitespace YAML block scalars leave behind.
 
     Two artifacts, both invisible in the source:
@@ -174,9 +182,9 @@ def _clean(value: Any) -> Any:
     if isinstance(value, str):
         return re.sub(r"[ \t]{2,}", " ", value.rstrip())
     if isinstance(value, list):
-        return [_clean(v) for v in value]
+        return [clean(v) for v in value]
     if isinstance(value, dict):
-        return {k: _clean(v) for k, v in value.items()}
+        return {k: clean(v) for k, v in value.items()}
     return value
 
 
@@ -232,7 +240,7 @@ def _education_meta(entry: dict[str, Any], labels: dict[str, str]) -> str | None
 def derive(data: dict[str, Any], lang: str, profile: str) -> dict[str, Any]:
     """Add everything the renderers would otherwise have to compute."""
     labels = i18n.labels(lang)
-    data = _clean(data)
+    data = clean(data)
     data["labels"] = labels
     data["meta"]["profile"] = profile
 

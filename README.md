@@ -23,6 +23,12 @@ neither knows `private.yaml` exists. That is what lets a third target (a
 plain-text version, JSON-LD, an ATS-friendly PDF) be added later without
 touching the data.
 
+**Cover letters** are the fourth target, and they work the same way — one YAML
+per application, resolved to JSON, rendered by its own Typst template. They
+read your name, contacts and address out of the CV rather than restating them,
+so a letterhead cannot disagree with the CV stapled behind it. See
+[Cover letters](#cover-letters).
+
 ---
 
 ## Contents
@@ -33,6 +39,7 @@ touching the data.
 - [Private data](#private-data)
 - [The YAML format](#the-yaml-format)
 - [How to add an experience entry](#how-to-add-an-experience-entry)
+- [Cover letters](#cover-letters)
 - [Project layout](#project-layout)
 - [Styling the PDF](#styling-the-pdf)
 - [Publishing to the website](#publishing-to-the-website)
@@ -81,6 +88,9 @@ install, and identical behaviour on Windows, Linux and CI.
 | `uv run cvforge all` | The PDF for every language present |
 | `uv run cvforge check` | Validate the data, report content warnings |
 | `uv run cvforge check-clean` | Fail if a private value reached `build/` or `out/` |
+| `uv run cvforge new <slug>` | Scaffold a new application — see [Cover letters](#cover-letters) |
+| `uv run cvforge letter <slug>` | Build that application's cover letter |
+| `uv run cvforge apply <slug>` | Build the send-ready folder: letter + matching CV |
 
 Add `--lang de` for German. Add `--profile public` to any of them to build as
 if `private.yaml` did not exist.
@@ -145,6 +155,10 @@ contacts:
 
 The keys are the `id` of a contact in `data/cv-<lang>.yaml`, and only `value`
 and `url` can be overridden.
+
+Two further top-level keys, `address` and `signature`, are read only by the
+cover letter — see [Cover letters](#cover-letters). Both are optional and both
+degrade to placeholders, so nothing here is required to build anything.
 
 ### The two profiles
 
@@ -440,18 +454,221 @@ the two files to agree — that is deliberate.
 
 ---
 
+## Cover letters
+
+A CV is written once and reused. A cover letter is the opposite: one company,
+one posting, one time. So a letter is a **sibling target**, not a new CV
+section — its own YAML, its own schema, its own Typst entry point.
+
+What it is *not* is a second copy of your identity. The name, tagline, contacts
+and postal address in the letterhead are read from `data/cv-<lang>.yaml` and
+`data/private.yaml`, the same files the CV uses. The letter YAML holds only
+what is specific to the application.
+
+Letters are never exported and never published. They are always built at
+`profile=full`, which is why the letter commands have no `--profile` flag.
+
+### Writing one
+
+```bash
+uv run cvforge new 2026-09-acme-rendering-engineer --lang de
+```
+
+That scaffolds:
+
+```
+applications/2026-09-acme-rendering-engineer/
+  letter.yaml     the letter itself          TRACKED
+  dossier.yaml    the posting, the people    gitignored
+  posting/        the archived posting       gitignored
+```
+
+Date-prefix the slug and the directory sorts itself chronologically.
+
+Fill in `letter.yaml`, then:
+
+```bash
+uv run cvforge check                                   # validates it too
+uv run cvforge letter 2026-09-acme-rendering-engineer  # just the letter
+uv run cvforge apply  2026-09-acme-rendering-engineer  # the folder to send
+```
+
+`apply` writes `out/applications/<slug>/` containing the letter and a freshly
+built CV in the letter's language, named the way an upload form expects:
+`Dominik_Wuest_Anschreiben.pdf` and `Dominik_Wuest_Lebenslauf.pdf` (or
+`_Cover_Letter` / `_CV` for `lang: en`). The CV is rebuilt rather than copied
+from `out/`, so the two documents in the folder are always the same vintage.
+
+For the live preview, the letter equivalent of the CV's dev loop:
+
+```bash
+uv run cvforge dev --letter 2026-09-acme-rendering-engineer
+```
+
+then open `templates/letter/main.typ` and run **Tinymist: Preview**. Tinymist's
+`--input` flags are set once for the whole workspace and cannot name a slug, so
+the template reads `build/letter-preview.json` and the watcher keeps that file
+pointed at whatever you are working on.
+
+### What is tracked and what is not
+
+`letter.yaml` is committed. It is your own writing, worth a history, and the
+company's postal address on it is public imprint data.
+
+`dossier.yaml` and `posting/` are not. A recruiter's name, email and phone are
+someone else's personal data, and an archived posting is someone else's
+copyrighted text — neither belongs in a history that outlives the application.
+Nothing renders from the dossier; it exists so that three weeks later, when the
+posting has been taken down and you are sitting in the interview, the facts are
+still somewhere.
+
+Archive the posting as a **PDF print, not a screenshot**. It keeps the text
+selectable and captures the whole posting rather than one viewport of it.
+
+The one unavoidable seam: the name in the salutation is in the tracked
+`letter.yaml`, because the letter cannot be rendered without it. Everything
+past that name is in the dossier.
+
+### Your signature
+
+```yaml
+# data/private.yaml
+signature: "assets/private/signature.png"
+```
+
+`assets/private/` is gitignored, and the only file that names the path is
+`data/private.yaml`, which is gitignored too — so no tracked file mentions it
+even by name. A transparent PNG around 800px wide, scanned from a black pen,
+works best.
+
+If the file is missing, or the key is absent, or there is no `private.yaml` at
+all, the letter still builds: it prints the typed name with blank space above
+it, which is exactly what you want if you intend to print and sign it. A
+scanned signature carries no extra legal weight on an emailed PDF anyway.
+
+### The address block
+
+The CV stores your address as one flat string (`contacts.location`). DIN 5008
+needs the parts separately — the recipient block puts them on their own lines,
+and the return line joins them with a middle dot. So `private.yaml` carries a
+structured version alongside the flat one:
+
+```yaml
+address:
+  street: "Musterstraße 1"
+  postal_code: "76131"     # quoted; "01067" would lose its leading zero
+  city: "Karlsruhe"
+  country: null            # printed only for a recipient abroad
+```
+
+Deriving this by splitting the flat string on commas would work right up until
+an address contains one.
+
+> The `city` here is also in the public CV as `Karlsruhe, DE`. `check-clean`
+> knows that: a value the committed `data/cv-*.yaml` already contain cannot be
+> a leak, so it is dropped from the scan. Without that rule, `export` would
+> find "Karlsruhe" in the public site data and refuse to publish the website.
+
+### The layout
+
+DIN 5008 **Form B**, wearing the CV's typeface, accent colour and contact row.
+The parts that are not negotiable, because a window envelope and a document
+scanner both assume them, are in `templates/letter/theme.typ`:
+
+| Key | | |
+|---|---|---|
+| `address.top` | `45mm` | Top of the address field, from the paper's edge |
+| `body.top` | `98.46mm` | Where the subject line starts |
+| `fold.first` / `.second` | `87mm` / `192mm` | Fold marks, at the thirds |
+| `fold.punch` | `148.5mm` | Hole-punch mark |
+
+**Those positions are measured from the paper, not from the flow.** The
+letterhead and the address field are both `place`d absolutely and consume no
+flow height, so neither can push the other down — fold the sheet in thirds and
+the address lands in the window whatever the letterhead did.
+
+The consequence is that **the letterhead must fit** in the 33 mm above the
+address field; it will not make room for itself. The name, tagline and *one*
+contact row fit. A contact row that wraps to two lines does not. That is what
+`sender_contacts` is for:
+
+```yaml
+sender_contacts: [email, phone, github, website]
+```
+
+`location` is left out by default on purpose — your postal address is already
+on the page, in the return line above the recipient.
+
+`cvforge letter` prints the page count and warns if it is not 1. A two-page
+cover letter is a content problem; cut a paragraph.
+
+### The letter YAML
+
+```yaml
+meta:
+  lang: de              # picks the CV the sender identity is read from
+  slug: 2026-09-acme-rendering-engineer   # must match the directory
+  date: null            # null = the day you build it
+
+recipient:
+  company: "ACME GmbH"
+  department: "Personalabteilung"   # optional
+  person: "Frau Anna Beispiel"      # optional; printed in the address field
+  salutation: "Sehr geehrte Frau Beispiel,"   # optional; see below
+  street: "Musterallee 7"
+  postal_code: "10115"
+  city: "Berlin"
+  country: null
+
+job:
+  title: "Rendering Engineer"
+  reference: "REQ-2026-114"   # optional; info block + subject line
+  source: "Ihre Anzeige auf StepStone vom 04.09.2026"   # optional; info block
+  url: "https://..."          # optional; recorded, never printed
+
+subject: null                 # optional override of the composed line
+sender_contacts: [email, phone, github, website]   # optional; omit for all
+
+body:                         # folded (>) paragraphs, in order
+  - >
+    …
+
+closing: null                 # optional override
+enclosures: ["Lebenslauf", "Zeugnisse"]   # optional
+```
+
+**`salutation` is free text on purpose.** German forms of address need a gender
+that the data does not carry and should not be guessing, so a named salutation
+is written out by hand. Leave it out and you get *Sehr geehrte Damen und
+Herren,*.
+
+The subject composes to *Bewerbung als Rendering Engineer – Kennziffer
+REQ-2026-114* and prints without the word "Betreff", which DIN 5008 dropped.
+
+Letter strings — the subject prefix, the generic salutation, the closing, the
+filenames — live in `LETTER_LABELS` in
+[src/cvforge/i18n.py](src/cvforge/i18n.py), a separate table from the CV's.
+They have to be: the CV's labels are copied into every published artifact, and
+a letter's vocabulary has no business on the website.
+
+---
+
 ## Project layout
 
 ```
 data/            The CV content. This is the source of truth.
-schema/          JSON Schema for the above; wired into VS Code.
-src/cvforge/     resolve (YAML -> JSON), dates, i18n, the CLI.
-templates/pdf/   The Typst renderer.
+applications/    One directory per application; the cover letters.
+schema/          JSON Schema for both; wired into VS Code.
+src/cvforge/     resolve (YAML -> JSON), letter, dates, i18n, the CLI.
+templates/pdf/   The Typst CV renderer.
   theme.typ        All design tokens. No magic numbers live anywhere else.
   template.typ     Page geometry and the set/show rules.
   components/      header, contact row, chips, timeline.
   sections/        One module per CV section.
   main.typ         Document assembly only.
+templates/letter/  The Typst letter renderer. Imports ../pdf/ for the theme,
+                   the icons and the contact row, so the two documents cannot
+                   drift apart on typeface or colour.
 assets/          Avatar and the committed fonts.
 build/  out/     Generated. Both gitignored.
 ```

@@ -6,6 +6,21 @@ data/private.yaml
 data/private.*.yaml
 !data/private.example.yaml
 
+# The signature scan for cover letters. Its path is named only in
+# data/private.yaml, which is itself ignored - so no tracked file mentions it
+# even by name, and a broken rule here still leaks nothing from git history.
+assets/private/
+
+# ─── Application dossiers ───────────────────────────────────────────────────
+# applications/<slug>/letter.yaml IS tracked: it is your own writing, and a
+# company's postal address is public imprint data. Everything about the other
+# party is not. A recruiter's name, email and phone are their personal data,
+# and an archived posting is someone else's copyrighted text; neither belongs
+# in a history that outlives the application.
+applications/*/dossier.yaml
+applications/*/posting/
+!applications/_template/dossier.example.yaml
+
 # ─── Editable diagram sources ───────────────────────────────────────────────
 # draw.io exports embed their whole editable mxfile in a PNG metadata chunk.
 # For resources/iVS3D_overview.png that chunk was 12.8MB against 240KB of

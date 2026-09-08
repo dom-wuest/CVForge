@@ -21,16 +21,29 @@ def find_root(start: Path | None = None) -> Path:
 ROOT = find_root()
 
 DATA = ROOT / "data"
-SCHEMA = ROOT / "schema" / "cv.schema.json"
 BUILD = ROOT / "build"
 OUT = ROOT / "out"
 TEMPLATES = ROOT / "templates"
 ASSETS = ROOT / "assets"
 FONTS = ASSETS / "fonts"
 
+# One application per directory. letter.yaml is tracked; dossier.yaml and
+# posting/ are gitignored - see .gitignore for why.
+APPLICATIONS = ROOT / "applications"
+APPLICATION_TEMPLATE = APPLICATIONS / "_template"
+
+# Never committed: the signature scan. Named only from data/private.yaml,
+# which is itself gitignored, so no tracked file mentions this path.
+PRIVATE_ASSETS = ASSETS / "private"
+
 PRIVATE = DATA / "private.yaml"
-PDF_MAIN = TEMPLATES / "pdf" / "main.typ"
-WEB_TEMPLATES = TEMPLATES / "web"
+
+CV_SCHEMA = ROOT / "schema" / "cv.schema.json"
+LETTER_SCHEMA = ROOT / "schema" / "letter.schema.json"
+DOSSIER_SCHEMA = ROOT / "schema" / "dossier.schema.json"
+
+CV_MAIN = TEMPLATES / "pdf" / "main.typ"
+LETTER_MAIN = TEMPLATES / "letter" / "main.typ"
 
 
 def display(path: Path) -> str:
@@ -57,5 +70,35 @@ def pdf(lang: str) -> Path:
     return OUT / f"cv-{lang}.pdf"
 
 
-def html(lang: str) -> Path:
-    return OUT / f"cv-{lang}.html"
+# ─── Cover letters ──────────────────────────────────────────────────────────
+# A letter is keyed by application slug, not by language: it is written once,
+# for one company, and the language is a property of that one application.
+
+
+def application(slug: str) -> Path:
+    return APPLICATIONS / slug
+
+
+def letter_source(slug: str) -> Path:
+    return application(slug) / "letter.yaml"
+
+
+def dossier(slug: str) -> Path:
+    return application(slug) / "dossier.yaml"
+
+
+def letter_resolved(slug: str) -> Path:
+    return BUILD / f"letter-{slug}.json"
+
+
+def letter_preview() -> Path:
+    """Where `dev --letter` mirrors the resolved letter.
+
+    Tinymist's --input flags are global to the workspace, so the preview cannot
+    name a slug. It always reads this file, and the watcher keeps it current.
+    """
+    return BUILD / "letter-preview.json"
+
+
+def bundle(slug: str) -> Path:
+    return OUT / "applications" / slug

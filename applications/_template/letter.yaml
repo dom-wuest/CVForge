@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=../../schema/letter.schema.json
+#
+# One application's cover letter. Copied here by `uv run cvforge new <slug>`.
+#
+# What is NOT in this file: your name, tagline, contacts, postal address and
+# signature. Those come from data/cv-<lang>.yaml and the gitignored
+# data/private.yaml, so the letterhead can never drift out of step with the CV.
+#
+# This file IS tracked. Everything about the other party beyond the name in the
+# salutation - recruiter emails, phone numbers, the archived posting - belongs
+# in dossier.yaml next door, which is not.
+#
+# The three YAML rules from data/cv-en.yaml apply here too. In particular:
+# quote the postcode, or "01067" becomes the number 1067.
+
+meta:
+  lang: de # de | en - picks the CV the sender identity is read from
+  slug: new-application # `cvforge new` replaces this with the directory name
+  date: null # null = the day you build it, which is usually right
+
+recipient:
+  company: "ACME GmbH"
+  department: null # e.g. "Personalabteilung", or a team name
+  person: null # e.g. "Frau Anna Beispiel"
+  # The full line, including the comma. Leave it out for "Sehr geehrte Damen
+  # und Herren," - German forms of address need a gender that no data model
+  # should be guessing, so a named salutation is written out by hand.
+  salutation: null
+  street: "Musterallee 7"
+  postal_code: "10115"
+  city: "Berlin"
+  country: null # only for a recipient abroad
+
+job:
+  title: "Rendering Engineer"
+  reference: null # Kennziffer / req id - postings that have one expect it back
+  source: null # e.g. "Ihre Anzeige auf StepStone vom 04.09.2026"
+  url: null # recorded, never printed
+
+# Overrides the composed "Bewerbung als <title>". Usually leave it alone.
+subject: null
+
+# Which contacts appear in the letterhead, by id. Omit for all of them.
+#
+# `location` is left out on purpose: your postal address is already on this
+# page, in the return line above the recipient. Printing it twice costs a line
+# the letterhead does not have - everything above the address field has to fit
+# in 33mm, and a contact row that wraps to two lines is what pushes it over.
+sender_contacts: [email, phone, github, website]
+
+body:
+  - >
+    TODO: der Aufhänger. Warum diese Stelle, bei diesem Unternehmen, jetzt -
+    in einem Satz, ohne "hiermit bewerbe ich mich".
+  - >
+    TODO: der Beleg. Ein konkretes Projekt, das genau das zeigt, wonach die
+    Ausschreibung fragt. Zahlen statt Adjektive.
+  - >
+    TODO: der Schluss. Verfügbarkeit, falls gefragt, und ein Satz zum Gespräch.
+
+closing: null # null = "Mit freundlichen Grüßen"
+
+enclosures: ["Lebenslauf", "Zeugnisse"]

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dom-wuest.de/cvforge/dossier.schema.json",
+  "title": "CVForge application dossier",
+  "description": "Everything about an application that is NOT the letter: the posting, who you spoke to, where it stands. Gitignored - recruiter contacts are someone else's personal data and a posting is someone else's copyrighted text. No renderer reads this file; it exists so the facts are in one place when the interview comes.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "posting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fetched": {
+          "description": "When you archived it, \"YYYY-MM-DD\". Postings are taken down; this dates the copy in posting/.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+        },
+        "archive": {
+          "description": "Repo-relative path to the archived posting, e.g. applications/<slug>/posting/posting.pdf. Print to PDF rather than screenshot: it keeps the text selectable and the whole posting, not one viewport of it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "deadline": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+        },
+        "notes": {
+          "description": "What the posting actually asks for, in your own words. The requirements worth answering in the letter.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "contacts": {
+      "description": "Recruiters, hiring managers, anyone you spoke to.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "applied",
+        "screening",
+        "interview",
+        "offer",
+        "rejected",
+        "withdrawn",
+        null
+      ]
+    },
+    "timeline": {
+      "description": "What happened when. Free-form entries, newest last.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "event"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+          },
+          "event": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

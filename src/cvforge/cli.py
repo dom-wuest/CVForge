@@ -8,13 +8,16 @@ shell-quoting differences between PowerShell and bash.
 from __future__ import annotations
 
 import argparse
+import json
+import re
 import shutil
 import subprocess
 import sys
+import unicodedata
 from pathlib import Path
 
 from . import check as check_mod
-from . import i18n, paths, resolve
+from . import i18n, letter, paths, resolve
 
 
 def _typst() -> str:
@@ -38,41 +41,35 @@ def _page_count(pdf: Path) -> int | None:
     It only ever parses our own Typst output, which writes the page tree as
     "<</Type/Pages/Count 1/Kids[...]>>". Anything else returns None and the
     caller simply omits the number - this must never fail a build. The search
-    is anchored on /Type/Pages because /Count also appears in the outline.
+    is anchored on the /Pages type because /Count also appears in the outline.
+
+    The whitespace in the pattern is not decorative: PDF allows a space between
+    a key and its value, and typst 0.14 emits "/Type /Pages" where 0.13 emitted
+    "/Type/Pages". Matching only the tight form made this return None on every
+    build - which is invisible, because None just omits the number.
     """
     try:
         blob = pdf.read_bytes()
     except OSError:
         return None
-    marker = blob.find(b"/Type/Pages")
-    if marker == -1:
+    found = re.search(rb"/Type\s*/Pages\b", blob)
+    if found is None:
         return None
-    key = blob.find(b"/Count", marker)
-    if key == -1 or key - marker > 200:
-        return None
-    digits = bytearray()
-    for byte in blob[key + 6 : key + 32]:
-        if 48 <= byte <= 57:
-            digits.append(byte)
-        elif digits:
-            break
-    return int(digits) if digits else None
+    key = re.compile(rb"/Count\s*(\d+)").search(blob, found.end(), found.end() + 200)
+    return int(key.group(1)) if key else None
 
 
-def _compile_pdf(lang: str, target: Path | None = None) -> Path:
-    """Run typst with the flags this project always needs.
+def _compile(main: Path, target: Path, inputs: dict[str, str]) -> int | None:
+    """Run typst with the flags this project always needs. Returns the page count.
 
-    --root .            so main.typ can read /build/cv-<lang>.json by absolute path
+    --root .            so a template can read /build/<artifact>.json by absolute path
     --font-path         so Font Awesome resolves; without it icons come out blank
                         and the body text silently falls back to another typeface
-    --input lang=...    so one main.typ serves every language
+    --input k=v         so one template serves every language, and every letter
 
-    `target` defaults to out/cv-<lang>.pdf. `export` passes a path in the
-    website's working copy instead, so the public PDF never lands in out/ and
-    overwrites the full-profile one you send with applications. --root only
-    constrains what Typst may *read*, so an output outside the repo is fine.
+    --root only constrains what Typst may *read*, so an output outside the repo
+    is fine - that is how `export` writes into the website's working copy.
     """
-    target = paths.pdf(lang) if target is None else target
     target.parent.mkdir(parents=True, exist_ok=True)
     try:
         out_arg = str(target.relative_to(paths.ROOT))
@@ -81,22 +78,54 @@ def _compile_pdf(lang: str, target: Path | None = None) -> Path:
     cmd = [
         _typst(),
         "compile",
-        str(paths.PDF_MAIN.relative_to(paths.ROOT)),
+        str(main.relative_to(paths.ROOT)),
         out_arg,
         "--root",
         ".",
         "--font-path",
         str(paths.FONTS.relative_to(paths.ROOT)),
-        "--input",
-        f"lang={lang}",
     ]
+    for key, value in inputs.items():
+        cmd += ["--input", f"{key}={value}"]
+
     print("  " + " ".join(cmd[1:]))
     result = subprocess.run(cmd, cwd=paths.ROOT)
     if result.returncode != 0:
         raise resolve.ResolveError(f"typst compile failed (exit {result.returncode})")
+
     pages = _page_count(target)
     suffix = "" if pages is None else f"  ({pages} page{'s' if pages != 1 else ''})"
     print(f"  wrote {paths.display(target)}{suffix}")
+    return pages
+
+
+def _compile_pdf(lang: str, target: Path | None = None) -> Path:
+    """Compile the CV.
+
+    `target` defaults to out/cv-<lang>.pdf. `export` passes a path in the
+    website's working copy instead, so the public PDF never lands in out/ and
+    overwrites the full-profile one you send with applications.
+    """
+    target = paths.pdf(lang) if target is None else target
+    _compile(paths.CV_MAIN, target, {"lang": lang})
+    return target
+
+
+def _compile_letter(slug: str, lang: str, target: Path) -> Path:
+    """Compile one cover letter, and complain if it did not come out on one page.
+
+    A two-page cover letter is a content problem, not a layout one - nobody
+    reads the second page - so this is loud but not fatal: you may well be
+    mid-edit, and failing the build would only get in the way.
+    """
+    pages = _compile(paths.LETTER_MAIN, target, {"slug": slug, "lang": lang})
+    if pages is not None and pages > 1:
+        print(
+            f"  warning: the letter is {pages} pages. A cover letter is one page - "
+            f"cut a paragraph, or trim `sender_contacts` if the letterhead is "
+            f"crowding the address field.",
+            file=sys.stderr,
+        )
     return target
 
 
@@ -172,6 +201,9 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 
 def cmd_all(args: argparse.Namespace) -> int:
+    # CVs only, deliberately. Rebuilding every application you have ever sent
+    # on every `all` is wrong, and CI has no data/private.yaml to build one
+    # with anyway.
     langs = [lang for lang in i18n.LANGS if paths.source(lang).is_file()]
     for lang in langs:
         print(f"[{lang}] pdf")
@@ -179,30 +211,145 @@ def cmd_all(args: argparse.Namespace) -> int:
     return 0
 
 
+# ─── Cover letters ──────────────────────────────────────────────────────────
+
+
+def _slugify_name(name: str) -> str:
+    """A person's name as a filename an employer's system will not mangle.
+
+    "Dominik Wüst" -> "Dominik_Wuest". Transliterating rather than stripping,
+    because "Wst" is worse than either.
+    """
+    folded = name
+    for source, target in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        folded = folded.replace(source, target).replace(source.upper(), target.capitalize())
+    ascii_only = unicodedata.normalize("NFKD", folded).encode("ascii", "ignore").decode()
+    return re.sub(r"[^A-Za-z0-9]+", "_", ascii_only).strip("_")
+
+
+def _letter_target(slug: str, artifact: dict) -> Path:
+    labels = artifact["labels"]
+    stem = _slugify_name(artifact["meta"]["name"])
+    return paths.bundle(slug) / f"{stem}_{labels['file_letter']}.pdf"
+
+
+def cmd_letter(args: argparse.Namespace) -> int:
+    """Build one application's cover letter, and nothing else.
+
+    This is the fast loop while writing. `apply` is what you run when you are
+    ready to send.
+    """
+    letter.write_letter(args.slug)
+    artifact = json.loads(paths.letter_resolved(args.slug).read_text(encoding="utf-8"))
+    _compile_letter(args.slug, artifact["meta"]["lang"], _letter_target(args.slug, artifact))
+    return 0
+
+
+def cmd_apply(args: argparse.Namespace) -> int:
+    """Build the whole send-ready folder: the letter and a matching CV.
+
+    The CV is rebuilt here rather than reused from out/ so the two documents in
+    the folder are guaranteed to be the same vintage, and in the same language
+    as the letter. Both are profile=full - this folder is for an employer, not
+    for the web.
+    """
+    letter.write_letter(args.slug)
+    artifact = json.loads(paths.letter_resolved(args.slug).read_text(encoding="utf-8"))
+    lang = artifact["meta"]["lang"]
+    labels = artifact["labels"]
+    stem = _slugify_name(artifact["meta"]["name"])
+    out = paths.bundle(args.slug)
+
+    print(f"[{args.slug}] letter")
+    _compile_letter(args.slug, lang, out / f"{stem}_{labels['file_letter']}.pdf")
+
+    print(f"[{args.slug}] cv ({lang})")
+    resolve.write(lang, "full", quiet=True)
+    _compile_pdf(lang, target=out / f"{stem}_{labels['file_cv']}.pdf")
+
+    print(f"\nready to send: {paths.display(out)}")
+    return 0
+
+
+def cmd_new(args: argparse.Namespace) -> int:
+    """Scaffold applications/<slug>/ from applications/_template/."""
+    target = paths.application(args.slug)
+    if target.exists():
+        raise resolve.ResolveError(f"{paths.display(target)} already exists")
+    if not paths.APPLICATION_TEMPLATE.is_dir():
+        raise resolve.ResolveError(f"missing scaffold: {paths.display(paths.APPLICATION_TEMPLATE)}")
+
+    target.mkdir(parents=True)
+    written: list[Path] = []
+
+    source = (paths.APPLICATION_TEMPLATE / "letter.yaml").read_text(encoding="utf-8")
+    source = source.replace("slug: new-application", f"slug: {args.slug}")
+    source = source.replace("lang: de", f"lang: {args.lang}")
+    letter_file = paths.letter_source(args.slug)
+    letter_file.write_text(source, encoding="utf-8")
+    written.append(letter_file)
+
+    # dossier.yaml is gitignored; the example it comes from is not.
+    example = paths.APPLICATION_TEMPLATE / "dossier.example.yaml"
+    if example.is_file():
+        dossier_file = paths.dossier(args.slug)
+        dossier_file.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
+        written.append(dossier_file)
+
+    (target / "posting").mkdir()
+
+    for path in written:
+        print(f"  wrote {paths.display(path)}")
+    print(f"  wrote {paths.display(target / 'posting')}/")
+    print(f"\nnext: write {paths.display(letter_file)}, then `cvforge letter {args.slug}`")
+    return 0
+
+
 def cmd_dev(args: argparse.Namespace) -> int:
-    """Regenerate build/cv-<lang>.json whenever the data changes.
+    """Regenerate the resolved JSON whenever the data changes.
 
     Typst itself is watched by Tinymist in VS Code, which gives a live preview
     with cursor-to-PDF jumping. This half only covers the data, which Tinymist
     knows nothing about. Use `--compile` if you would rather not use Tinymist.
+
+    With `--letter <slug>` it watches that application too, and mirrors the
+    resolved letter to build/letter-preview.json. Tinymist's --input flags are
+    set once for the whole workspace, so the preview cannot name a slug; it
+    reads the mirror, and this is what keeps the mirror current.
     """
     from watchfiles import watch
 
-    print(f"watching data/ for lang={args.lang} (Ctrl+C to stop)")
-    print("  tip: open templates/pdf/main.typ and run 'Tinymist: Preview' for the live PDF")
+    slug = getattr(args, "letter", None)
+    if slug:
+        print(f"watching data/ and applications/{slug}/ (Ctrl+C to stop)")
+        print("  tip: open templates/letter/main.typ and run 'Tinymist: Preview'")
+    else:
+        print(f"watching data/ for lang={args.lang} (Ctrl+C to stop)")
+        print("  tip: open templates/pdf/main.typ and run 'Tinymist: Preview' for the live PDF")
 
     def rebuild() -> None:
         try:
-            resolve.write(args.lang, args.profile)
-            if args.compile:
-                _compile_pdf(args.lang)
+            if slug:
+                target = letter.write_letter(slug)
+                paths.letter_preview().write_text(
+                    target.read_text(encoding="utf-8"), encoding="utf-8"
+                )
+                if args.compile:
+                    artifact = json.loads(target.read_text(encoding="utf-8"))
+                    _compile_letter(slug, artifact["meta"]["lang"], _letter_target(slug, artifact))
+            else:
+                resolve.write(args.lang, args.profile)
+                if args.compile:
+                    _compile_pdf(args.lang)
         except resolve.ResolveError as exc:
             print(f"  error: {exc}", file=sys.stderr)
 
     rebuild()
     watched = [paths.DATA]
+    if slug:
+        watched.append(paths.application(slug))
     if args.compile:
-        watched.append(paths.TEMPLATES / "pdf")
+        watched.append(paths.TEMPLATES / ("letter" if slug else "pdf"))
     for changes in watch(*watched):
         names = sorted({Path(p).name for _, p in changes})
         print(f"\nchanged: {', '.join(names)}")
@@ -262,8 +409,34 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("all", help="the PDF for every language present")
     p.set_defaults(func=cmd_all)
 
+    # ── Cover letters ────────────────────────────────────────────────────────
+    # No --profile anywhere here on purpose: a letter carries a postal address
+    # by definition, so `full` is the only profile that makes sense, and a
+    # letter is never exported.
+
+    def add_slug(p: argparse.ArgumentParser) -> None:
+        p.add_argument("slug", help="the directory name under applications/")
+
+    p = sub.add_parser("new", help="scaffold a new application under applications/")
+    add_slug(p)
+    add_lang(p)
+    p.set_defaults(func=cmd_new)
+
+    p = sub.add_parser("letter", help="build one application's cover letter")
+    add_slug(p)
+    p.set_defaults(func=cmd_letter)
+
+    p = sub.add_parser("apply", help="build the send-ready folder: letter + matching CV")
+    add_slug(p)
+    p.set_defaults(func=cmd_apply)
+
     p = sub.add_parser("dev", help="watch data/ and regenerate the JSON")
     add_lang(p), add_profile(p)
+    p.add_argument(
+        "--letter",
+        metavar="SLUG",
+        help="watch this application instead, and mirror it to build/letter-preview.json",
+    )
     p.add_argument(
         "--compile",
         action="store_true",

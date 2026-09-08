@@ -6,9 +6,14 @@
   // `preview.fontPaths` covers the preview panel separately.
   "tinymist.fontPaths": ["assets/fonts"],
 
-  // main.typ reads `sys.inputs.lang` to pick build/cv-<lang>.json.
-  // Switch both to "de" to preview the German CV in-editor.
-  "tinymist.typstExtraArgs": ["--input", "lang=en"],
+  // templates/pdf/main.typ reads `sys.inputs.lang` to pick build/cv-<lang>.json.
+  // Switch to "de" to preview the German CV in-editor.
+  //
+  // These flags are global to the workspace, so they cannot name the letter
+  // you happen to be editing. templates/letter/main.typ therefore defaults to
+  // build/letter-preview.json, and `cvforge dev --letter <slug>` keeps that
+  // file pointed at whatever you are working on. Leave slug=preview alone.
+  "tinymist.typstExtraArgs": ["--input", "lang=en", "--input", "slug=preview"],
 
   // The CLI owns out/. Letting Tinymist also write PDFs there races it.
   "tinymist.exportPdf": "never",
@@ -26,7 +31,12 @@
   // Gives completion and inline validation while editing the YAML.
   // Requires the redhat.vscode-yaml extension.
   "yaml.schemas": {
-    "./schema/cv.schema.json": ["data/cv-*.yaml"]
+    "./schema/cv.schema.json": ["data/cv-*.yaml"],
+    "./schema/letter.schema.json": ["applications/*/letter.yaml"],
+    "./schema/dossier.schema.json": [
+      "applications/*/dossier.yaml",
+      "applications/*/dossier.example.yaml"
+    ]
   },
   "[yaml]": {
     "editor.tabSize": 2,

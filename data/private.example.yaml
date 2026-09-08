@@ -3,7 +3,8 @@
 #     cp data/private.example.yaml data/private.yaml
 #
 # data/private.yaml is gitignored and is the ONLY place a real phone number or
-# street address may appear. It is shared across all languages.
+# street address may appear. It is shared across all languages, and by the CV
+# and the cover letters alike.
 #
 # It is merged in only for `--profile full` (the default for the PDF).
 # `--profile public` - which the HTML target forces - ignores this file
@@ -27,3 +28,29 @@ contacts:
   # is publishable, and this refines it for job applications.
   location:
     value: "Musterstraße 1, 76131 Karlsruhe"
+
+# ─── Cover letters ──────────────────────────────────────────────────────────
+# Only the letter reads these. The CV has no use for a structured address: it
+# prints one line, and `contacts.location` above already is that line.
+#
+# A letter needs the parts separately, because DIN 5008 puts them on separate
+# lines and joins them with a middle dot in the return line above the address
+# field. Deriving that by splitting the flat string on commas would work right
+# up until an address has a comma in it.
+#
+# Missing block = the letter still builds, with a visible placeholder address.
+
+address:
+  street: "Musterstraße 1"
+  postal_code: "76131" # quoted; "01067" would lose its leading zero
+  city: "Karlsruhe"
+  country: null # printed only when the recipient is abroad
+
+# Your signature scan, as a repo-relative path. assets/private/ is gitignored,
+# so the image never enters the repository and this file - which names it - is
+# not in the repository either.
+#
+# A transparent PNG works best; roughly 800px wide from a black-pen scan.
+# Missing file or null = the letter prints the typed name alone, which is
+# legally just as good for an emailed PDF.
+signature: "assets/private/signature.png"

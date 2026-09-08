@@ -17,11 +17,14 @@ from typing import Any
 
 import yaml
 
-from . import i18n, paths, resolve
+from . import i18n, letter, paths, resolve
 
 # Artifacts worth scanning as text. PDFs are compressed, so a literal grep
 # would miss the string; they are handled separately below.
 TEXT_SUFFIXES = {".json", ".html", ".css", ".txt", ".svg", ".md"}
+
+# Roughly what fits on one line of the letter's subject at its type size.
+SUBJECT_MAX = 78
 
 
 def check(langs: tuple[str, ...] = i18n.LANGS) -> int:
@@ -49,6 +52,7 @@ def check(langs: tuple[str, ...] = i18n.LANGS) -> int:
         print("no data/cv-*.yaml files found")
         return 1
 
+    warnings += _check_letters()
     warnings += _check_private_coverage(langs)
 
     if warnings:
@@ -122,6 +126,57 @@ def _check_ids(data: dict[str, Any], lang: str) -> list[str]:
     return out
 
 
+def _check_letters() -> list[str]:
+    """Validate every application's letter.yaml and report content smells.
+
+    Validation failure raises, as it does for the CV - a letter that does not
+    parse is not a warning. The smells are the ones you only notice after
+    sending: an unedited template, a subject that will wrap, a contact row too
+    long for the space above the address field.
+    """
+    if not paths.APPLICATIONS.is_dir():
+        return []
+
+    out: list[str] = []
+    for directory in sorted(p for p in paths.APPLICATIONS.iterdir() if p.is_dir()):
+        slug = directory.name
+        if slug.startswith("_"):  # _template is a scaffold, not an application
+            continue
+        src = paths.letter_source(slug)
+        if not src.is_file():
+            out.append(f"[{slug}] no letter.yaml in {paths.display(directory)}")
+            continue
+
+        print(f"checking {paths.display(src)}")
+        data = resolve.load_yaml(src)
+        letter.validate_letter(data, slug)  # raises ResolveError, caught by the CLI
+        print("  schema ok")
+
+        lang = data["meta"]["lang"]
+        cv_src = paths.source(lang)
+        if not cv_src.is_file():
+            out.append(f"[{slug}] declares lang={lang!r} but {paths.display(cv_src)} is missing")
+            continue
+
+        ids = {c["id"] for c in resolve.load_yaml(cv_src).get("contacts", [])}
+        for cid in data.get("sender_contacts") or []:
+            if cid not in ids:
+                out.append(f"[{slug}] sender_contacts: no contact {cid!r} in {cv_src.name}")
+
+        for i, paragraph in enumerate(data.get("body") or []):
+            if "TODO" in paragraph:
+                out.append(f"[{slug}] body[{i}] still contains TODO")
+
+        subject = data.get("subject") or data["job"]["title"]
+        if len(subject) > SUBJECT_MAX:
+            out.append(
+                f"[{slug}] the subject line is {len(subject)} characters; over about "
+                f"{SUBJECT_MAX} it wraps onto a second line"
+            )
+
+    return out
+
+
 def _check_private_coverage(langs: tuple[str, ...]) -> list[str]:
     """Warn about contacts marked private with no matching private.yaml entry."""
     if not paths.PRIVATE.is_file():
@@ -144,15 +199,40 @@ def _check_private_coverage(langs: tuple[str, ...]) -> list[str]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+# Dotted trails in private.yaml whose value is a path to a secret rather than
+# the secret itself. `signature` names a gitignored file; the path is written
+# into build/letter-<slug>.json by design, so scanning for it would report a
+# leak on every single letter build - and a check that always cries wolf is a
+# check nobody reads. The file it points at is what must not be published, and
+# .gitignore is what guarantees that.
+NOT_SECRET = frozenset({"signature"})
+
+
+def _public_text() -> str:
+    """Everything the committed CV data already says, as one blob."""
+    return "\n".join(
+        path.read_text(encoding="utf-8") for path in sorted(paths.DATA.glob("cv-*.yaml"))
+    )
+
+
 def _private_needles() -> list[tuple[str, str]]:
     """Every leaf string in private.yaml, plus a digits-only phone variant.
 
     The digits-only form catches a renderer that reformatted the number, e.g.
     "+49 721 1234567" written into a tel: URL as "+491234567".
+
+    Values that the committed data/cv-*.yaml already contain are dropped. A
+    value that is public by construction cannot be leaked by publishing it, and
+    private.yaml legitimately holds some: the structured `address` block
+    repeats the city, which the CV publishes as "Karlsruhe, DE". Without this
+    filter `export` would find that in the public site JSON, call it a leak and
+    refuse to publish the website.
     """
     needles: list[tuple[str, str]] = []
 
     def walk(node: Any, trail: str) -> None:
+        if trail in NOT_SECRET:
+            return
         if isinstance(node, dict):
             for k, v in node.items():
                 walk(v, f"{trail}.{k}" if trail else str(k))
@@ -168,7 +248,11 @@ def _private_needles() -> list[tuple[str, str]]:
         digits = re.sub(r"\D", "", value)
         if len(digits) >= 7:
             needles.append((f"{trail} (digits only)", digits))
-    return needles
+
+    # A needle shorter than this matches something innocent sooner or later,
+    # and nothing that short is worth protecting on its own.
+    public = _public_text()
+    return [(trail, value) for trail, value in needles if len(value) >= 4 and value not in public]
 
 
 def check_clean(targets: tuple[Path, ...] = (paths.BUILD, paths.OUT)) -> int:

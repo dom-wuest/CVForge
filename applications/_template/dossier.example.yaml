@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../../schema/dossier.schema.json
+#
+# Copied to dossier.yaml by `uv run cvforge new <slug>`. That copy is
+# GITIGNORED and this example is not - the same split as
+# data/private.example.yaml against data/private.yaml.
+#
+# Nothing renders from this file. It exists because the posting will be taken
+# down, and three weeks later in an interview you will want to know exactly
+# what it said and who you spoke to.
+#
+# Why it is not tracked: a recruiter's name, email and phone are someone
+# else's personal data, and a job posting is someone else's copyrighted text.
+# Neither belongs in a git history that outlives the application.
+
+posting:
+  url: null
+  fetched: null # "YYYY-MM-DD" - dates the copy in posting/
+  # Print the posting to PDF rather than screenshotting it: the text stays
+  # selectable and you get the whole thing, not one viewport of it.
+  archive: null # e.g. applications/<slug>/posting/posting.pdf
+  deadline: null
+  notes: >
+    What they actually ask for, in your own words. The requirements worth
+    answering in the letter.
+
+contacts:
+  - name: "Anna Beispiel"
+    role: "Recruiting"
+    email: null
+    phone: null
+    notes: null
+
+status: draft # draft | applied | screening | interview | offer | rejected | withdrawn
+
+timeline:
+  - date: "2026-09-08"
+    event: "Applied via the company portal"
+
+notes: >
+  Anything else worth remembering.
