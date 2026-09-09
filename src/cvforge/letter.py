@@ -106,7 +106,21 @@ def _return_line(name: str, address: dict[str, Any]) -> str:
     return " · ".join(p for p in parts if p)
 
 
-def _subject(data: dict[str, Any], labels: dict[str, str]) -> str:
+def _reference_label(data: dict[str, Any], labels: dict[str, str]) -> str:
+    """What this employer calls their reference number.
+
+    Every career portal has its own word for it - Kennziffer, Referenznummer,
+    Job-ID, Role ID, Req ID - and quoting the posting's own term back is the
+    whole point of printing the number at all. So the label is per application,
+    not per language, and `labels.subject_reference` is only the fallback.
+
+    One value for both places it appears: the info block and the subject line
+    disagreeing about what the number is called would read as a mistake.
+    """
+    return data["job"].get("reference_label") or labels["subject_reference"]
+
+
+def subject_line(data: dict[str, Any], labels: dict[str, str]) -> str:
     """'Bewerbung als Rendering Engineer – Kennziffer REQ-2026-114'.
 
     DIN 5008 prints the subject without the word "Betreff", so neither does
@@ -118,7 +132,7 @@ def _subject(data: dict[str, Any], labels: dict[str, str]) -> str:
     subject = f"{labels['subject_prefix']} {data['job']['title']}"
     reference = data["job"].get("reference")
     if reference:
-        subject += f"{i18n.META_SEP}{labels['subject_reference']} {reference}"
+        subject += f"{i18n.META_SEP}{_reference_label(data, labels)} {reference}"
     return subject
 
 
@@ -131,7 +145,7 @@ def _info_block(data: dict[str, Any], labels: dict[str, str]) -> list[dict[str, 
     """
     block: list[dict[str, Any]] = []
     if data["job"].get("reference"):
-        block.append({"label": labels["subject_reference"], "value": data["job"]["reference"]})
+        block.append({"label": _reference_label(data, labels), "value": data["job"]["reference"]})
     if data["job"].get("source"):
         block.append({"label": None, "value": data["job"]["source"]})
     return block
@@ -191,7 +205,7 @@ def derive(data: dict[str, Any], slug: str, cv: dict[str, Any], private: dict) -
             "country": recipient.get("country"),
         },
         "info": _info_block(data, labels),
-        "subject": _subject(data, labels),
+        "subject": subject_line(data, labels),
         "salutation": recipient.get("salutation") or labels["salutation_default"],
         "body": data["body"],
         "closing": data.get("closing") or labels["closing"],

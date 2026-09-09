@@ -622,9 +622,10 @@ recipient:
 
 job:
   title: "Rendering Engineer"
-  reference: "REQ-2026-114"   # optional; info block + subject line
+  reference: "REQ-2026-114"       # optional; info block + subject line
+  reference_label: "Referenznummer"   # optional; what they call it
   source: "Ihre Anzeige auf StepStone vom 04.09.2026"   # optional; info block
-  url: "https://..."          # optional; recorded, never printed
+  url: "https://..."              # optional; recorded, never printed
 
 subject: null                 # optional override of the composed line
 sender_contacts: [email, phone, github, website]   # optional; omit for all
@@ -642,8 +643,15 @@ that the data does not carry and should not be guessing, so a named salutation
 is written out by hand. Leave it out and you get *Sehr geehrte Damen und
 Herren,*.
 
-The subject composes to *Bewerbung als Rendering Engineer – Kennziffer
+The subject composes to *Bewerbung als Rendering Engineer – Referenznummer
 REQ-2026-114* and prints without the word "Betreff", which DIN 5008 dropped.
+
+**`reference_label` is per application, not per language**, because every
+career portal has its own word for the same number — *Kennziffer*,
+*Referenznummer*, *Job-ID*, *Role ID*, *Req ID*. Copy the posting's own
+wording; quoting it back is the whole reason to print the number. One value
+covers both places it appears, so the info block and the subject line cannot
+disagree about what it is called. Omit it for *Kennziffer* / *Reference*.
 
 Letter strings — the subject prefix, the generic salutation, the closing, the
 filenames — live in `LETTER_LABELS` in

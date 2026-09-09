@@ -167,7 +167,10 @@ def _check_letters() -> list[str]:
             if "TODO" in paragraph:
                 out.append(f"[{slug}] body[{i}] still contains TODO")
 
-        subject = data.get("subject") or data["job"]["title"]
+        # The composed line, not just the title: the prefix and the reference
+        # are most of what pushes it over, so measuring the title alone would
+        # have missed exactly the cases this warning is for.
+        subject = letter.subject_line(data, i18n.letter_labels(lang))
         if len(subject) > SUBJECT_MAX:
             out.append(
                 f"[{slug}] the subject line is {len(subject)} characters; over about "

@@ -121,6 +121,13 @@
             "null"
           ]
         },
+        "reference_label": {
+          "description": "What THIS employer calls that number - 'Referenznummer', 'Job-ID', 'Role ID', 'Req ID'. Use the posting's own wording; quoting it back is the point of printing the number. Omit for this language's default ('Kennziffer' / 'Reference'). Used in both the info block and the subject line.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "source": {
           "description": "Where you found it, as a full phrase in this letter's language, e.g. 'Ihre Anzeige auf StepStone vom 04.09.2026'. Rendered in the info block.",
           "type": [

@@ -34,6 +34,10 @@ recipient:
 job:
   title: "Rendering Engineer"
   reference: null # Kennziffer / req id - postings that have one expect it back
+  # What THIS employer calls that number: "Referenznummer", "Job-ID",
+  # "Role ID", "Req ID". Copy the posting's own wording - quoting it back is
+  # the point of printing the number. null = "Kennziffer" / "Reference".
+  reference_label: null
   source: null # e.g. "Ihre Anzeige auf StepStone vom 04.09.2026"
   url: null # recorded, never printed
 

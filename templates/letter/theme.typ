@@ -64,7 +64,11 @@
   info: (
     width: 65mm,
     size: 8pt,
-    label-width: 20mm,
+    // Gap between a label and its value, NOT a fixed tab stop. `reference_label`
+    // is the posting's own wording - "Kennziffer", "Referenznummer", "Role ID" -
+    // so its width is not knowable here, and a fixed column silently drew the
+    // value on top of a label that outgrew it.
+    label-gap: 1.2em,
     row-gap: 0.45em,
   ),
 

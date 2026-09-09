@@ -69,10 +69,12 @@
       ..entries.map(e => if e.label == none {
         e.value
       } else {
-        // `auto` on the value, not 1fr: the label column is a fixed tab stop,
-        // the value is only as wide as it is.
+        // `auto` on the label so it is exactly as wide as whatever the posting
+        // calls its reference number, and `1fr` on the value so a long one
+        // wraps inside the block instead of running off the page.
         grid(
-          columns: (letter.info.label-width, auto),
+          columns: (auto, 1fr),
+          column-gutter: letter.info.label-gap,
           text(fill: theme.muted, e.label), e.value,
         )
       }),
