@@ -54,3 +54,63 @@ address:
 # Missing file or null = the letter prints the typed name alone, which is
 # legally just as good for an emailed PDF.
 signature: "assets/private/signature.png"
+
+# The documents you attach to applications: diplomas, transcripts, references.
+# One declaration each, referenced from any number of letters by `id` - your
+# Masterzeugnis is one file on disk however many places you send it.
+#
+# Declaring them rather than just dropping files in a directory buys two
+# things. The sent filename comes from `label`, not from whatever the scanner
+# called the file - and scanners produce names like scan_2023_04_11_0003.pdf.
+# And `id` is stable, so rescanning or renaming a document does not mean
+# editing every letter that attaches it.
+#
+# Both `file` and `label` take the same shape: one string, or one per
+# language. Between them that covers the three kinds of document you actually
+# have, and the examples below are one of each:
+#
+#   one file, one name    a German Zeugnis you send everywhere as it is
+#   one file, two names   a bilingual certificate - the document does not
+#                         change with the language, only the Anlagen line does
+#   two files, two names  a transcript your university issues separately in
+#                         German and in English
+#
+# A letter picks the edition matching its own `meta.lang`. If a document has
+# per-language files but not one for that language, the other is attached and
+# both the build and `cvforge check` say so - it is still a real document, so
+# this is a warning rather than a refusal.
+#
+# Put the files in assets/private/documents/ - gitignored, like the signature.
+# `cvforge apply` copies them into the send folder; `cvforge check` warns about
+# one whose file has gone missing, and `apply` refuses to build the folder at
+# all rather than produce an incomplete application.
+
+documents:
+  # One file, one name. Issued in German, sent as-is to everyone.
+  - id: masterzeugnis
+    file: "assets/private/documents/masterzeugnis.pdf"
+    label: "Masterzeugnis"
+
+  # One file, two names. The certificate itself is bilingual, so there is
+  # nothing to switch but the wording in the Anlagen line.
+  - id: bachelorzeugnis
+    file: "assets/private/documents/bachelorzeugnis.pdf"
+    label:
+      de: "Bachelorzeugnis"
+      en: "Bachelor's Degree Certificate"
+
+  # Two files, two names. The university issues this one per language, so a
+  # German application must not receive the English edition.
+  - id: transcript-master
+    file:
+      de: "assets/private/documents/notenauszug_master_de.pdf"
+      en: "assets/private/documents/transcript_master_en.pdf"
+    label:
+      de: "Notenauszug (laufendes Masterstudium)"
+      en: "Transcript of Records (Master, in progress)"
+
+  - id: az-xyzgmbh
+    file: "assets/private/documents/arbeitszeugnis.pdf"
+    label:
+      de: "Arbeitszeugnis XYZ GmbH"
+      en: "Reference, XYZ GmbH"

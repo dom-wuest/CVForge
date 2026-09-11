@@ -19,6 +19,7 @@ assets/private/
 # in a history that outlives the application.
 applications/*/dossier.yaml
 applications/*/posting/
+applications/*/attachments/
 !applications/_template/dossier.example.yaml
 
 # ─── Editable diagram sources ───────────────────────────────────────────────

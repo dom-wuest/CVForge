@@ -170,6 +170,59 @@
         "minLength": 1
       }
     },
+    "attachments": {
+      "description": "Files to send alongside the letter and CV, in the order an employer should see them. An entry is either the id of a document declared under `documents:` in data/private.yaml, or a one-off {file, label} whose path is relative to this application directory. `cvforge apply` copies them into the send folder, numbered in this order, and refuses to build the folder at all if one is missing.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/id"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file",
+              "label"
+            ],
+            "properties": {
+              "file": {
+                "description": "Path relative to applications/<slug>/, e.g. \"attachments/portfolio.pdf\". That directory is gitignored.",
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "description": "How this document is named in the Anlagen line and in the sent filename. One string, or one per language for a document whose German name would be wrong on an English application.",
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "de": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "en": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "minProperties": 1
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
     "closing": {
       "description": "Overrides the closing formula, e.g. 'Mit freundlichen Gruessen'. Omit for this language's default.",
       "type": [
@@ -178,7 +231,7 @@
       ]
     },
     "enclosures": {
-      "description": "The 'Anlagen:' line under the signature. Omit for none.",
+      "description": "The 'Anlagen:' line under the signature. Omit it and the line is derived from what is actually being sent - the CV, then every attachment's label, in order - which is what keeps it from claiming documents the folder does not contain. Set it to override that wording.",
       "type": [
         "array",
         "null"

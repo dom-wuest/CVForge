@@ -89,8 +89,8 @@ install, and identical behaviour on Windows, Linux and CI.
 | `uv run cvforge check` | Validate the data, report content warnings |
 | `uv run cvforge check-clean` | Fail if a private value reached `build/` or `out/` |
 | `uv run cvforge new <slug>` | Scaffold a new application — see [Cover letters](#cover-letters) |
-| `uv run cvforge letter <slug>` | Build that application's cover letter |
-| `uv run cvforge apply <slug>` | Build the send-ready folder: letter + matching CV |
+| `uv run cvforge letter <slug>` | Build that application's cover letter → `out/letters/<slug>.pdf` |
+| `uv run cvforge apply <slug>` | Build the send-ready folder: letter, matching CV, attachments |
 
 Add `--lang de` for German. Add `--profile public` to any of them to build as
 if `private.yaml` did not exist.
@@ -156,9 +156,10 @@ contacts:
 The keys are the `id` of a contact in `data/cv-<lang>.yaml`, and only `value`
 and `url` can be overridden.
 
-Two further top-level keys, `address` and `signature`, are read only by the
-cover letter — see [Cover letters](#cover-letters). Both are optional and both
-degrade to placeholders, so nothing here is required to build anything.
+Three further top-level keys — `address`, `signature` and `documents` — are read
+only by the cover letter; see [Cover letters](#cover-letters). All three are
+optional and all three degrade gracefully, so nothing here is required to build
+anything.
 
 ### The two profiles
 
@@ -478,9 +479,10 @@ That scaffolds:
 
 ```
 applications/2026-09-acme-rendering-engineer/
-  letter.yaml     the letter itself          TRACKED
-  dossier.yaml    the posting, the people    gitignored
-  posting/        the archived posting       gitignored
+  letter.yaml     the letter itself             TRACKED
+  dossier.yaml    the posting, the people       gitignored
+  posting/        the archived posting          gitignored
+  attachments/    one-off files for this job    gitignored
 ```
 
 Date-prefix the slug and the directory sorts itself chronologically.
@@ -493,11 +495,31 @@ uv run cvforge letter 2026-09-acme-rendering-engineer  # just the letter
 uv run cvforge apply  2026-09-acme-rendering-engineer  # the folder to send
 ```
 
-`apply` writes `out/applications/<slug>/` containing the letter and a freshly
-built CV in the letter's language, named the way an upload form expects:
-`Dominik_Wuest_Anschreiben.pdf` and `Dominik_Wuest_Lebenslauf.pdf` (or
-`_Cover_Letter` / `_CV` for `lang: en`). The CV is rebuilt rather than copied
-from `out/`, so the two documents in the folder are always the same vintage.
+`apply` writes `out/applications/<slug>/` containing the letter, a freshly built
+CV in the letter's language, and every attachment — numbered in that order and
+named the way an upload form expects:
+
+```
+out/applications/2026-09-acme-rendering-engineer/
+  01_Dominik_Wuest_Anschreiben.pdf
+  02_Dominik_Wuest_Lebenslauf.pdf
+  03_Dominik_Wuest_Masterzeugnis.pdf
+  04_Dominik_Wuest_Arbeitszeugnis.pdf
+```
+
+(`_Cover_Letter` / `_CV` for `lang: en`.) The numeric prefix is there because
+alphabetical order matches what an employer expects only by luck —
+*Arbeitszeugnis* sorts before *Anschreiben*.
+
+Two things about that folder are deliberate. The CV is **rebuilt** rather than
+copied from `out/`, so the documents in it are always the same vintage. And the
+folder is **emptied first**, so dropping an attachment from the letter cannot
+leave the old file behind for you to send anyway.
+
+`cvforge letter` writes its draft to `out/letters/<slug>.pdf` — outside the send
+folder, on purpose. If drafts landed in the bundle, then building the folder,
+fixing a sentence and rebuilding just the letter would leave a stale numbered
+letter beside a fresh unnumbered one.
 
 For the live preview, the letter equivalent of the CV's dev loop:
 
@@ -545,6 +567,100 @@ If the file is missing, or the key is absent, or there is no `private.yaml` at
 all, the letter still builds: it prints the typed name with blank space above
 it, which is exactly what you want if you intend to print and sign it. A
 scanned signature carries no extra legal weight on an emailed PDF anyway.
+
+### Attachments
+
+Diplomas, transcripts and references are the same files for every application,
+so they are declared once in `data/private.yaml` and picked per letter by id —
+the same shape as `sender_contacts` picking from the CV's contacts.
+
+```yaml
+# data/private.yaml
+documents:
+  # One file, one name — issued in German, sent as-is to everyone.
+  - id: masterzeugnis
+    file: "assets/private/documents/scan_2023_04_11_0003.pdf"
+    label: "Masterzeugnis"
+
+  # One file, two names — the certificate is bilingual, so only the
+  # Anlagen line changes with the language.
+  - id: bachelorzeugnis
+    file: "assets/private/documents/bachelorzeugnis.pdf"
+    label:
+      de: "Bachelorzeugnis"
+      en: "Bachelor's Degree Certificate"
+
+  # Two files, two names — the university issues this one per language,
+  # so a German application must not receive the English edition.
+  - id: transcript-master
+    file:
+      de: "assets/private/documents/notenauszug_master_de.pdf"
+      en: "assets/private/documents/transcript_master_en.pdf"
+    label:
+      de: "Notenauszug (laufendes Masterstudium)"
+      en: "Transcript of Records (Master, in progress)"
+```
+
+```yaml
+# applications/<slug>/letter.yaml
+attachments:
+  - masterzeugnis
+  - transcript-master
+  - file: "attachments/portfolio.pdf"   # relative to this application
+    label: "Arbeitsproben"              # gitignored, for this job only
+```
+
+The files live in `assets/private/documents/`, covered by the same
+`assets/private/` rule as the signature — so nothing about them, not even a
+filename, is in a tracked file.
+
+**Declaring them rather than just dropping files in a directory buys two
+things.** The name you *send* comes from `label`, not from whatever the scanner
+produced — and scanners produce names like `scan_2023_04_11_0003.pdf`. And `id`
+is stable, so rescanning or renaming a document does not mean editing every
+letter that attaches it.
+
+Order is the order you list them, and it becomes the numbering in the send
+folder.
+
+#### Documents that exist in more than one language
+
+`file` and `label` take **the same shape: one string, or one per language.**
+Between them that covers the three kinds of document you actually have:
+
+| | `file` | `label` | |
+|---|---|---|---|
+| One file, one name | string | string | A German Zeugnis you send everywhere as it is |
+| One file, two names | string | mapping | A bilingual certificate — the document does not change with the language, only the Anlagen line does |
+| Two files, two names | mapping | mapping | A transcript your university issues separately in German and in English |
+
+A letter picks the edition matching its own `meta.lang`, so the same
+`attachments: [transcript-master]` sends the German scan from a German letter
+and the English one from an English letter. A plain string is never wrong — it
+just means the language does not change anything.
+
+If a document has per-language files but not one for the language you are
+writing in, the other edition is attached and both the build and `cvforge
+check` say so. That is a warning rather than a refusal: the fallback is still a
+real document, and sometimes the German original is all that exists.
+
+**The "Anlagen:" line derives from this by default** — the CV, then each
+attachment's label. That is the point of deriving it: a hand-written line
+saying *Zeugnisse* next to a folder containing none is the kind of mistake you
+only find out about after sending. Set `enclosures:` explicitly to override the
+wording.
+
+**A missing file is handled differently by the two commands.** `cvforge letter`
+still builds — it only needs the labels, and being blocked while writing the
+second paragraph helps nobody. `cvforge apply` refuses outright and names every
+missing document at once, because that is the command whose output you are
+about to send unexamined. The refusal happens before the folder is emptied, so
+a failed `apply` leaves your last good folder intact.
+
+`cvforge check` reports both, earlier still, and splits them the way the data
+is shaped: a declared file that is not on disk is **one** warning against the
+document, not one against every letter that attaches it, while whether the id
+resolves and whether your language's edition was declared are per letter.
 
 ### The address block
 
@@ -634,8 +750,10 @@ body:                         # folded (>) paragraphs, in order
   - >
     …
 
+attachments:                  # optional; pool ids and/or one-off {file, label}
+  - masterzeugnis
 closing: null                 # optional override
-enclosures: ["Lebenslauf", "Zeugnisse"]   # optional
+enclosures: null              # optional; derived from attachments when unset
 ```
 
 **`salutation` is free text on purpose.** German forms of address need a gender

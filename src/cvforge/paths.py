@@ -32,9 +32,11 @@ FONTS = ASSETS / "fonts"
 APPLICATIONS = ROOT / "applications"
 APPLICATION_TEMPLATE = APPLICATIONS / "_template"
 
-# Never committed: the signature scan. Named only from data/private.yaml,
-# which is itself gitignored, so no tracked file mentions this path.
+# Never committed: the signature scan and the pool of documents you attach to
+# applications. Named only from data/private.yaml, which is itself gitignored,
+# so no tracked file mentions these paths.
 PRIVATE_ASSETS = ASSETS / "private"
+PRIVATE_DOCUMENTS = PRIVATE_ASSETS / "documents"
 
 PRIVATE = DATA / "private.yaml"
 
@@ -87,6 +89,16 @@ def dossier(slug: str) -> Path:
     return application(slug) / "dossier.yaml"
 
 
+def attachments(slug: str) -> Path:
+    """Where a one-off attachment for this application alone lives.
+
+    Paths in a letter's `attachments:` are resolved against the application
+    directory, so "attachments/portfolio.pdf" means this. Gitignored, like the
+    dossier - a work sample is not repository content.
+    """
+    return application(slug) / "attachments"
+
+
 def letter_resolved(slug: str) -> Path:
     return BUILD / f"letter-{slug}.json"
 
@@ -98,6 +110,17 @@ def letter_preview() -> Path:
     name a slug. It always reads this file, and the watcher keeps it current.
     """
     return BUILD / "letter-preview.json"
+
+
+def letter_pdf(slug: str) -> Path:
+    """The draft letter on its own, deliberately NOT inside the send folder.
+
+    If drafts landed in the bundle, this sequence would send the wrong file:
+    build the folder, tweak a sentence, rebuild just the letter to look at it,
+    then drag the folder - which now holds a numbered stale letter next to an
+    unnumbered fresh one.
+    """
+    return OUT / "letters" / f"{slug}.pdf"
 
 
 def bundle(slug: str) -> Path:

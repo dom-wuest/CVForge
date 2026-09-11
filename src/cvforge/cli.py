@@ -223,14 +223,50 @@ def _slugify_name(name: str) -> str:
     folded = name
     for source, target in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
         folded = folded.replace(source, target).replace(source.upper(), target.capitalize())
+    # Apostrophes vanish rather than becoming separators: a document label like
+    # "Bachelor's Degree Certificate" should read Bachelors_Degree_Certificate,
+    # not Bachelor_s_Degree_Certificate.
+    folded = folded.replace("'", "").replace("’", "")
     ascii_only = unicodedata.normalize("NFKD", folded).encode("ascii", "ignore").decode()
     return re.sub(r"[^A-Za-z0-9]+", "_", ascii_only).strip("_")
 
 
+def _send_name(index: int, stem: str, label: str, suffix: str) -> str:
+    """One file in the send-ready folder: "01_Dominik_Wuest_Anschreiben.pdf".
+
+    The numeric prefix is what makes the folder sort in the order the letter
+    lists things, in every file dialog and every upload form. Alphabetical
+    order only matches what an employer expects by luck - "Arbeitszeugnis"
+    sorts before "Anschreiben".
+    """
+    return f"{index:02d}_{stem}_{_slugify_name(label)}{suffix}"
+
+
+def _clear_bundle(out: Path) -> None:
+    """Empty the send folder before refilling it.
+
+    Without this, dropping an attachment from the letter leaves the old file
+    behind and you send it anyway - the exact failure this command exists to
+    prevent. Only ever the one slug's directory, which nothing but `apply`
+    writes to, under out/, which is generated and gitignored.
+    """
+    if not out.is_dir():
+        return
+    stale = [p for p in out.iterdir() if p.is_file()]
+    for path in stale:
+        path.unlink()
+    if stale:
+        print(f"  cleared {len(stale)} stale file(s) from {paths.display(out)}")
+
+
 def _letter_target(slug: str, artifact: dict) -> Path:
-    labels = artifact["labels"]
-    stem = _slugify_name(artifact["meta"]["name"])
-    return paths.bundle(slug) / f"{stem}_{labels['file_letter']}.pdf"
+    """Where `cvforge letter` puts the letter on its own.
+
+    out/letters/, not the send folder: this is the draft you look at while
+    writing, and `apply` owns everything in out/applications/<slug>/. See
+    paths.letter_pdf for why mixing the two is a way to send the wrong file.
+    """
+    return paths.letter_pdf(slug)
 
 
 def cmd_letter(args: argparse.Namespace) -> int:
@@ -246,7 +282,7 @@ def cmd_letter(args: argparse.Namespace) -> int:
 
 
 def cmd_apply(args: argparse.Namespace) -> int:
-    """Build the whole send-ready folder: the letter and a matching CV.
+    """Build the whole send-ready folder: letter, CV, and every attachment.
 
     The CV is rebuilt here rather than reused from out/ so the two documents in
     the folder are guaranteed to be the same vintage, and in the same language
@@ -258,16 +294,39 @@ def cmd_apply(args: argparse.Namespace) -> int:
     lang = artifact["meta"]["lang"]
     labels = artifact["labels"]
     stem = _slugify_name(artifact["meta"]["name"])
+    attached = artifact.get("attachments", [])
+
+    # Refuse before writing anything. A folder with a hole in it is worse than
+    # no folder at all: the point of this command is that you can send what it
+    # produced without checking it first. Every problem at once, so fixing them
+    # is one round trip rather than five.
+    unresolved = [a["label"] for a in attached if not a.get("file")]
+    if unresolved:
+        raise resolve.ResolveError(
+            "these attachments have no file, so the folder was not built: "
+            + ", ".join(unresolved)
+            + "\n  Check `documents:` in data/private.yaml, and that each `file:` exists."
+        )
+
     out = paths.bundle(args.slug)
+    _clear_bundle(out)
 
     print(f"[{args.slug}] letter")
-    _compile_letter(args.slug, lang, out / f"{stem}_{labels['file_letter']}.pdf")
+    _compile_letter(args.slug, lang, out / _send_name(1, stem, labels["file_letter"], ".pdf"))
 
     print(f"[{args.slug}] cv ({lang})")
     resolve.write(lang, "full", quiet=True)
-    _compile_pdf(lang, target=out / f"{stem}_{labels['file_cv']}.pdf")
+    _compile_pdf(lang, target=out / _send_name(2, stem, labels["file_cv"], ".pdf"))
 
-    print(f"\nready to send: {paths.display(out)}")
+    if attached:
+        print(f"[{args.slug}] attachments")
+        for i, entry in enumerate(attached, start=3):
+            source = Path(entry["file"])
+            target = out / _send_name(i, stem, entry["label"], source.suffix.lower())
+            shutil.copyfile(source, target)
+            print(f"  wrote {paths.display(target)}")
+
+    print(f"\nready to send: {paths.display(out)}  ({2 + len(attached)} files)")
     return 0
 
 
@@ -296,11 +355,15 @@ def cmd_new(args: argparse.Namespace) -> int:
         dossier_file.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
         written.append(dossier_file)
 
+    # Both gitignored: the archived posting, and any work sample you send to
+    # this company alone.
     (target / "posting").mkdir()
+    paths.attachments(args.slug).mkdir()
 
     for path in written:
         print(f"  wrote {paths.display(path)}")
-    print(f"  wrote {paths.display(target / 'posting')}/")
+    for directory in ("posting", "attachments"):
+        print(f"  wrote {paths.display(target / directory)}/")
     print(f"\nnext: write {paths.display(letter_file)}, then `cvforge letter {args.slug}`")
     return 0
 

@@ -53,6 +53,7 @@ def check(langs: tuple[str, ...] = i18n.LANGS) -> int:
         return 1
 
     warnings += _check_letters()
+    warnings += _check_documents()
     warnings += _check_private_coverage(langs)
 
     if warnings:
@@ -163,6 +164,8 @@ def _check_letters() -> list[str]:
             if cid not in ids:
                 out.append(f"[{slug}] sender_contacts: no contact {cid!r} in {cv_src.name}")
 
+        out += _check_attachments(data, slug, lang)
+
         for i, paragraph in enumerate(data.get("body") or []):
             if "TODO" in paragraph:
                 out.append(f"[{slug}] body[{i}] still contains TODO")
@@ -177,6 +180,73 @@ def _check_letters() -> list[str]:
                 f"{SUBJECT_MAX} it wraps onto a second line"
             )
 
+    return out
+
+
+def _document_pool() -> dict[str, Any]:
+    """The `documents:` declarations from private.yaml, keyed by id."""
+    if not paths.PRIVATE.is_file():
+        return {}
+    return {
+        entry["id"]: entry
+        for entry in resolve.load_yaml(paths.PRIVATE).get("documents") or []
+        if isinstance(entry, dict) and entry.get("id")
+    }
+
+
+def _check_documents() -> list[str]:
+    """Warn once per declared document file that is not on disk.
+
+    Deliberately separate from the per-letter check: a document is declared
+    once, so a missing scan is one problem, not one problem per application
+    that attaches it. Five letters citing the same missing transcript should
+    not produce five identical warnings.
+    """
+    out: list[str] = []
+    for did, entry in sorted(_document_pool().items()):
+        named = letter._declared_files(entry.get("file", ""))
+        if not named:
+            out.append(f"[documents] {did}: declares no usable `file:`")
+            continue
+        for rel in named:
+            if not (paths.ROOT / rel).is_file():
+                out.append(f"[documents] {did}: {rel} does not exist")
+    return out
+
+
+def _check_attachments(data: dict[str, Any], slug: str, lang: str) -> list[str]:
+    """Warn about an attachment this letter cannot resolve.
+
+    File existence for the shared pool is _check_documents' job, once. What is
+    per-letter is whether the id resolves at all, whether the edition this
+    letter's language needs was declared, and whether a one-off file - which
+    belongs to this application and nothing else - is there.
+    """
+    listed = data.get("attachments") or []
+    if not listed:
+        return []
+
+    pool = _document_pool()
+    out: list[str] = []
+    for i, entry in enumerate(listed):
+        if isinstance(entry, str):
+            declared = pool.get(entry)
+            if declared is None:
+                out.append(
+                    f"[{slug}] attachments[{i}]: no document {entry!r} declared "
+                    f"in data/private.yaml"
+                )
+                continue
+            declared_file = declared.get("file", "")
+            if isinstance(declared_file, dict) and not declared_file.get(lang):
+                out.append(
+                    f"[{slug}] attachments[{i}]: {entry!r} has language-specific "
+                    f"editions but none for {lang} - another language's will be sent"
+                )
+        elif isinstance(entry, dict):
+            source = paths.application(slug) / entry.get("file", "")
+            if not source.is_file():
+                out.append(f"[{slug}] attachments[{i}]: {paths.display(source)} does not exist")
     return out
 
 
@@ -202,13 +272,14 @@ def _check_private_coverage(langs: tuple[str, ...]) -> list[str]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-# Dotted trails in private.yaml whose value is a path to a secret rather than
-# the secret itself. `signature` names a gitignored file; the path is written
-# into build/letter-<slug>.json by design, so scanning for it would report a
-# leak on every single letter build - and a check that always cries wolf is a
-# check nobody reads. The file it points at is what must not be published, and
-# .gitignore is what guarantees that.
-NOT_SECRET = frozenset({"signature"})
+# Top-level keys in private.yaml that are a manifest of secrets rather than
+# secrets themselves. `signature` and `documents` name gitignored files; those
+# paths and labels are written into build/letter-<slug>.json by design, and
+# "Masterzeugnis" is printed in the Anlagen line of the letter itself. Scanning
+# for them would report a leak on every letter build, and a check that always
+# cries wolf is a check nobody reads. What must not be published is the file
+# each one points at, and .gitignore is what guarantees that.
+NOT_SECRET = frozenset({"signature", "documents"})
 
 
 def _public_text() -> str:
@@ -234,7 +305,9 @@ def _private_needles() -> list[tuple[str, str]]:
     needles: list[tuple[str, str]] = []
 
     def walk(node: Any, trail: str) -> None:
-        if trail in NOT_SECRET:
+        # Match on the first path segment, so a whole subtree is covered:
+        # "documents" also skips "documents[0].file" and "documents[0].label".
+        if trail.split(".")[0].split("[")[0] in NOT_SECRET:
             return
         if isinstance(node, dict):
             for k, v in node.items():

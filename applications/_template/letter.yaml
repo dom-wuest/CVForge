@@ -62,6 +62,27 @@ body:
   - >
     TODO: der Schluss. Verfügbarkeit, falls gefragt, und ein Satz zum Gespräch.
 
+# What to send alongside the letter and the CV, in the order an employer
+# should see them. Each entry is either the id of a document declared under
+# `documents:` in data/private.yaml, or a one-off for this application alone:
+#
+#   attachments:
+#     - masterzeugnis                       # from the shared pool
+#     - az-fraunhofer
+#     - file: "attachments/portfolio.pdf"   # relative to THIS directory,
+#       label: "Arbeitsproben"              # which is gitignored
+#
+# A pool document may declare a file per language, in which case the edition
+# matching this letter's `meta.lang` is the one that gets sent - so the same id
+# attaches the German scan here and the English one from an English letter.
+#
+# `cvforge apply` copies them into out/applications/<slug>/, numbered in this
+# order, and refuses to build the folder at all if one of them is missing.
+attachments: []
+
 closing: null # null = "Mit freundlichen Grüßen"
 
-enclosures: ["Lebenslauf", "Zeugnisse"]
+# The "Anlagen:" line. Leave it null and it is derived from what is actually
+# being sent - the CV, then each attachment's label, in order - so it can never
+# claim a document the folder does not contain. Set it only to reword.
+enclosures: null
