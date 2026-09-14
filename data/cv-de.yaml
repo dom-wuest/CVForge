@@ -29,16 +29,12 @@ contacts:
     icon: envelope
     value: "kontakt@dom-wuest.de"
     url: "mailto:kontakt@dom-wuest.de"
+    private: refine
 
   - id: phone
     icon: phone
     value: "+49 000 0000000"
     private: hidden
-
-  - id: location
-    icon: location-dot
-    value: "Karlsruhe, DE"
-    private: refine
 
   - id: linkedin
     icon: linkedin
@@ -47,6 +43,11 @@ contacts:
     # and ATS URL extraction matches on "linkedin.com/in/", not on a username.
     value: "linkedin.com/in/dom-wuest"
     url: "https://linkedin.com/in/dom-wuest"
+
+  - id: location
+    icon: location-dot
+    value: "Karlsruhe, DE"
+    private: refine
 
   - id: github
     icon: github

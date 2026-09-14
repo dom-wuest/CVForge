@@ -29,16 +29,12 @@ contacts:
     icon: envelope
     value: "kontakt@dom-wuest.de"
     url: "mailto:kontakt@dom-wuest.de"
+    private: refine
 
   - id: phone
     icon: phone
     value: "+49 000 0000000" # placeholder; real number in private.yaml
     private: hidden # dropped entirely from the public/HTML profile
-
-  - id: location
-    icon: location-dot
-    value: "Karlsruhe, DE" # publishable as-is
-    private: refine # private.yaml refines this to the full street address
 
   - id: linkedin
     icon: linkedin
@@ -48,12 +44,17 @@ contacts:
     value: "linkedin.com/in/dom-wuest"
     url: "https://linkedin.com/in/dom-wuest"
 
+  - id: location
+    icon: location-dot
+    value: "Karlsruhe, DE" # publishable as-is
+    private: refine # private.yaml refines this to the full street address
+
   - id: github
     icon: github
     brand: true
     value: "github.com/dom-wuest"
     url: "https://github.com/dom-wuest"
-
+  
   - id: website
     icon: globe
     value: "dom-wuest.de"
