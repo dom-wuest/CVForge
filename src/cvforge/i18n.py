@@ -36,7 +36,7 @@ LABELS: dict[str, dict[str, str]] = {
     "de": {
         "profile": "Profil",
         "experience": "Berufserfahrung",
-        "education": "Ausbildung",
+        "education": "Bildungsweg",
         "projects": "Projekte",
         "skills": "Kenntnisse",
         "languages": "Sprachen",
