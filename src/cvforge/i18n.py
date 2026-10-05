@@ -30,6 +30,7 @@ LABELS: dict[str, dict[str, str]] = {
         "specialization": "Specialization",
         "grade": "Grade",
         "grade_current": "Current Grade",
+        "grade_preliminary": "Preliminary Grade",
         # Misc
         "page": "Page",
     },
@@ -47,6 +48,7 @@ LABELS: dict[str, dict[str, str]] = {
         "specialization": "Profilfach",
         "grade": "Note",
         "grade_current": "Aktuelle Note",
+        "grade_preliminary": "Vorläufige Note",
         "page": "Seite",
     },
 }

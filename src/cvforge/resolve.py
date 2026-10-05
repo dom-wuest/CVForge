@@ -216,6 +216,15 @@ def _add_dates(entry: dict[str, Any], lang: str, labels: dict[str, str]) -> None
     entry["end_iso"] = dates.iso(end)
 
 
+# Which label a `grade_note` picks. Only the qualified notes appear here:
+# 'final' and an absent note both mean a grade that stands on its own, and
+# both fall through to the plain "Grade" / "Note".
+_GRADE_LABEL = {
+    "current": "grade_current",  # studies still running
+    "preliminary": "grade_preliminary",  # degree obtained, final grade pending
+}
+
+
 def _education_meta(entry: dict[str, Any], labels: dict[str, str]) -> str | None:
     """Compose 'Thesis: X - Minor: Y - Current Grade 1.2', skipping absent parts.
 
@@ -230,8 +239,7 @@ def _education_meta(entry: dict[str, Any], labels: dict[str, str]) -> str | None
 
     grade = entry.get("grade")
     if grade:
-        note = entry.get("grade_note")
-        label = labels["grade_current"] if note == "current" else labels["grade"]
+        label = labels[_GRADE_LABEL.get(entry.get("grade_note"), "grade")]
         parts.append(f"{label} {grade}")
 
     return i18n.META_SEP.join(parts) if parts else None

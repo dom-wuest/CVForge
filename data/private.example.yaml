@@ -28,6 +28,10 @@ contacts:
   # is publishable, and this refines it for job applications.
   location:
     value: "Musterstraße 1, 76131 Karlsruhe"
+    # The committed url points the map at the city; this one drops the pin on
+    # the street address. URL-encode it - %2C for a comma, + for a space - the
+    # renderer hands the string to link() untouched.
+    url: "https://www.google.com/maps/search/?api=1&query=Musterstra%C3%9Fe+1%2C+76131+Karlsruhe"
 
 # ─── Cover letters ──────────────────────────────────────────────────────────
 # Only the letter reads these. The CV has no use for a structured address: it

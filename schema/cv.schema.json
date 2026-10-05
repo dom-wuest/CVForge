@@ -219,9 +219,10 @@
             ]
           },
           "grade_note": {
-            "description": "Qualifies the grade: 'current' renders as 'Current Grade 1.2', 'final' as 'Grade 1.2'.",
+            "description": "Qualifies the grade: 'current' renders as 'Current Grade 1.2' (studies still running), 'preliminary' as 'Preliminary Grade 1.2' (degree obtained, final grade not yet published - e.g. a thesis marked 'mindestens bestanden'), 'final' as 'Grade 1.2'.",
             "enum": [
               "current",
+              "preliminary",
               "final",
               null
             ]

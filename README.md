@@ -261,13 +261,15 @@ education:
     minor: "Electrical Engineering"    # optional
     specialization: "Computer Science" # optional
     grade: "1.2"                       # optional, quoted
-    grade_note: current                # current | final | null
+    grade_note: current                # current | preliminary | final | null
     tags: ["Computer Graphics"]
 ```
 
 `thesis`, `specialization`, `minor` and `grade` are composed into one meta line
 with ` – ` separators, skipping whatever is absent. `grade_note: current`
-renders *Current Grade 1.2*; `final` renders *Grade 1.2*.
+renders *Current Grade 1.2* (studies still running), `preliminary` renders
+*Preliminary Grade 1.2* (degree obtained, final grade not yet published), and
+`final` renders *Grade 1.2*.
 
 ### `projects` *(optional)*
 

@@ -47,6 +47,10 @@ contacts:
   - id: location
     icon: location-dot
     value: "Karlsruhe, DE" # publishable as-is
+    # City-level on purpose: this is the url the public profile publishes, and
+    # a street address has no business on the website. private.yaml overrides
+    # it with the exact address, the same way it overrides `value`.
+    url: "https://www.google.com/maps/search/?api=1&query=Karlsruhe%2C+Germany"
     private: refine # private.yaml refines this to the full street address
 
   - id: github
@@ -121,12 +125,14 @@ education:
     org: "Karlsruhe Institute of Technology (KIT)"
     location: "Karlsruhe, Germany"
     start: "2023"
-    end: null # ongoing
+    end: "2026"
     thesis: >
       Automatic Shader Function Level of Detail using Neural Networks and
       Symbolic Regression
     grade: "1.2"
-    grade_note: current
+    # preliminary, not current: the degree is obtained (thesis marked "at least
+    # passed"), the final grade is published later.
+    grade_note: preliminary
     tags: ["Computer Graphics", "Anthropomatics and Cognitive Systems"]
 
   - id: bsc-kit
@@ -240,7 +246,7 @@ skills:
   - group: "Frameworks & UI"
     items: ["Qt", "HTML/CSS", "ImGui", "React"]
   - group: "Tooling"
-    items: ["Docker", "CMake", "GitLab CI/CD"]
+    items: ["Docker", "CMake", "GitLab CI/CD", "Claude Code"]
 
 languages:
   - name: "German"
