@@ -33,7 +33,11 @@
 
 // The letter's own language wins over the workspace-wide --input lang, which
 // says "en" no matter which letter is open in the editor.
-#show: letter-template.with(lang: doc.meta.lang, folds: not compact)
+#show: letter-template.with(
+  lang: doc.meta.lang,
+  folds: not compact,
+  justify: doc.meta.at("justify", default: false),
+)
 
 // Both blocks above the body are PLACED, not flowed, so neither can push the
 // other down: the letterhead hangs from the top of the text area, the address

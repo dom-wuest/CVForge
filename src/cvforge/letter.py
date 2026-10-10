@@ -358,6 +358,7 @@ def derive(data: dict[str, Any], slug: str, cv: dict[str, Any], private: dict) -
             "tagline": cv["meta"]["tagline"],
             "date_display": dates.display_day(data["meta"].get("date"), lang),
             "layout": data["meta"].get("layout") or "din",
+            "justify": bool(data["meta"].get("justify")),
         },
         "sender": {
             "address": address,

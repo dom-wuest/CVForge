@@ -46,6 +46,13 @@
             "compact",
             null
           ]
+        },
+        "justify": {
+          "description": "true sets the body justified (Blocksatz), with hyphenation for the letter's language. false or omitted keeps it ragged right.",
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },

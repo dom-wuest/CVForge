@@ -20,6 +20,7 @@ meta:
   # din = DIN 5008 geometry for a window envelope (address at 45mm, fold
   # marks). compact = PDF only: no envelope geometry, ~30mm more for text.
   layout: din
+  justify: false # true = Blocksatz, hyphenated
 
 recipient:
   company: "ACME GmbH"

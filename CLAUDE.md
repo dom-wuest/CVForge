@@ -290,6 +290,10 @@ and `body.top` are ignored, and the fold marks are dropped (`letter-template`
 takes `folds:`). It frees roughly 30 mm. `din` stays the default, and the
 artifact carries `meta.layout` so `main.typ` branches on data, not on inputs.
 
+**`meta.justify: true`** sets the body in Blocksatz via `letter-template`'s
+`justify:`. Typst hyphenates justified text in the document's `lang`, so the
+letter's language must be right or German compounds open rivers of space.
+
 The info block beside the address field uses `columns: (auto, 1fr)` with a
 gutter, not a fixed label column — `reference_label` is the posting's own
 wording, so its width is unknowable, and a fixed column once drew the value on

@@ -30,7 +30,11 @@
 
 // `folds: false` for the compact layout: marks for an envelope the letter
 // will never see are just stray lines in the margin.
-#let letter-template(lang: "de", folds: true, doc) = {
+//
+// `justify: true` is Blocksatz. Typst hyphenates justified text by default in
+// the text's language, which is what keeps German compounds from opening
+// rivers of white space - so `lang` matters more here than anywhere else.
+#let letter-template(lang: "de", folds: true, justify: false, doc) = {
   set page(
     paper: letter.page.paper,
     margin: letter.page.margin,
@@ -50,7 +54,7 @@
 
   set text(font: theme.body-font, size: theme.size, fill: theme.ink, lang: lang)
   set par(
-    justify: false, // ragged right; justified prose in a letter reads as a form
+    justify: justify, // ragged right by default; justified prose can read as a form
     leading: letter.body.leading,
     spacing: letter.body.par-spacing,
   )
