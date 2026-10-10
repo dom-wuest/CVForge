@@ -283,6 +283,13 @@ two-line row does not. `sender_contacts` in the letter is the knob; the
 scaffold omits `location` because the return line already carries the address.
 `_compile_letter` warns if the page count is not 1.
 
+**`meta.layout: compact`** is the opt-out, for letters that only travel as a
+PDF. Letterhead, address band and body flow one after another, separated by
+`letter.compact.address-gap` / `body-gap`; nothing is placed, `address.top`
+and `body.top` are ignored, and the fold marks are dropped (`letter-template`
+takes `folds:`). It frees roughly 30 mm. `din` stays the default, and the
+artifact carries `meta.layout` so `main.typ` branches on data, not on inputs.
+
 The info block beside the address field uses `columns: (auto, 1fr)` with a
 gutter, not a fixed label column — `reference_label` is the posting's own
 wording, so its width is unknowable, and a fixed column once drew the value on

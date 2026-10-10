@@ -17,6 +17,9 @@ meta:
   lang: de # de | en - picks the CV the sender identity is read from
   slug: new-application # `cvforge new` replaces this with the directory name
   date: null # null = the day you build it, which is usually right
+  # din = DIN 5008 geometry for a window envelope (address at 45mm, fold
+  # marks). compact = PDF only: no envelope geometry, ~30mm more for text.
+  layout: din
 
 recipient:
   company: "ACME GmbH"

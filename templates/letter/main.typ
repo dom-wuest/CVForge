@@ -26,9 +26,14 @@
 #let slug = sys.inputs.at("slug", default: "preview")
 #let doc = json("/build/letter-" + slug + ".json")
 
+// `din` places the blocks against the paper for a window envelope; `compact`
+// flows them for a letter that only ever travels as a PDF. Artifacts built
+// before the key existed have no `layout`, hence the default.
+#let compact = doc.meta.at("layout", default: "din") == "compact"
+
 // The letter's own language wins over the workspace-wide --input lang, which
 // says "en" no matter which letter is open in the editor.
-#show: letter-template.with(lang: doc.meta.lang)
+#show: letter-template.with(lang: doc.meta.lang, folds: not compact)
 
 // Both blocks above the body are PLACED, not flowed, so neither can push the
 // other down: the letterhead hangs from the top of the text area, the address
@@ -39,18 +44,26 @@
 //
 // The letterhead must therefore FIT in what is left above the address field;
 // it will not make room for itself. See components/address.typ.
-#place(top + left, dy: 0pt, block(width: 100%, letterhead(doc.meta, doc.sender.contacts)))
-
-#address-band(
-  doc.sender,
-  doc.recipient,
-  doc.info,
-  letter-theme.address.top - letter-theme.page.margin.top,
-)
-
-// The flow starts here, at a fixed height, so the subject line sits on the
-// same baseline in every letter you ever send.
-#v(letter-theme.body.top - letter-theme.page.margin.top)
+//
+// The compact layout drops all of that: the three blocks flow, so each starts
+// where the previous one ended, plus a fixed gap.
+#if compact {
+  block(width: 100%, letterhead(doc.meta, doc.sender.contacts))
+  v(letter-theme.compact.address-gap)
+  address-band(doc.sender, doc.recipient, doc.info, none)
+  v(letter-theme.compact.body-gap)
+} else {
+  place(top + left, dy: 0pt, block(width: 100%, letterhead(doc.meta, doc.sender.contacts)))
+  address-band(
+    doc.sender,
+    doc.recipient,
+    doc.info,
+    letter-theme.address.top - letter-theme.page.margin.top,
+  )
+  // The flow starts here, at a fixed height, so the subject line sits on the
+  // same baseline in every letter you ever send.
+  v(letter-theme.body.top - letter-theme.page.margin.top)
+}
 
 #align(right, text(size: letter-theme.date.size, {
   if doc.sender.address.city != none [#doc.sender.address.city, ]

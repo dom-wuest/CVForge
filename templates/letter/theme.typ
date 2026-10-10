@@ -81,6 +81,16 @@
     par-spacing: 1.0em,
   ),
 
+  // ── Compact layout ────────────────────────────────────────────────────────
+  // `meta.layout: compact` in the letter YAML, for a letter that is only ever
+  // sent as a PDF. Nothing is placed against the paper: letterhead, address
+  // band and body flow one after another, separated by these two gaps, and
+  // the fold marks are dropped. `address.top` and `body.top` are ignored.
+  compact: (
+    address-gap: 8mm, // letterhead rule -> return line
+    body-gap: 10mm, // bottom of the address band -> date line
+  ),
+
   date: (size: 9.5pt, below: 1.4em),
 
   subject: (size: 10.5pt, below: 1.5em),

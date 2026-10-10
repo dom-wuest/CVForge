@@ -28,11 +28,13 @@
   mark(letter.fold.second, letter.fold.length)
 }
 
-#let letter-template(lang: "de", doc) = {
+// `folds: false` for the compact layout: marks for an envelope the letter
+// will never see are just stray lines in the margin.
+#let letter-template(lang: "de", folds: true, doc) = {
   set page(
     paper: letter.page.paper,
     margin: letter.page.margin,
-    background: fold-marks(),
+    background: if folds { fold-marks() },
     // A cover letter is one page; the footer exists only so a two-page one is
     // obviously wrong rather than quietly wrong.
     footer: context {

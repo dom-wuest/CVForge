@@ -38,6 +38,14 @@
             "null"
           ],
           "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+        },
+        "layout": {
+          "description": "din (default): DIN 5008 Form B - address field at 45mm, subject at 98.46mm, fold marks, so a printed letter fits a window envelope. compact: for letters sent as PDF only - the letterhead, address and body flow one after another with no envelope geometry and no fold marks, which frees roughly 30mm for text.",
+          "enum": [
+            "din",
+            "compact",
+            null
+          ]
         }
       }
     },

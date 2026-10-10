@@ -82,15 +82,16 @@
   })
 }
 
-// The whole band: address field left, info block right, both hung from the
-// same absolute top edge.
+// The whole band: address field left, info block right, both from the same
+// top edge.
 //
 // `top-offset` is how far below the text area's top edge the field starts -
 // the caller works it out from the page margin, because only it knows that.
-#let address-band(sender, recipient, info, top-offset) = place(
-  top + left,
-  dy: top-offset,
-  block(width: 100%, grid(
+// `none` flows the band instead of placing it: the compact layout, where
+// there is no envelope window to hit and the band simply follows the
+// letterhead.
+#let address-band(sender, recipient, info, top-offset) = {
+  let band = block(width: 100%, grid(
     columns: (letter.address.width, 1fr),
     align: (left + top, right + top),
     {
@@ -99,5 +100,6 @@
       recipient-lines(recipient)
     },
     info-block(info),
-  )),
-)
+  ))
+  if top-offset == none { band } else { place(top + left, dy: top-offset, band) }
+}
