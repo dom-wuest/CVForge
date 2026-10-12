@@ -295,7 +295,8 @@ projects:
     end: null
     url: "https://github.com/dom-wuest/example"    # optional
     url_label: "github.com/dom-wuest/example"      # optional; derived from url
-    url_note: "Code will be published after grading" # optional; shown when url is absent
+    url_note: "Code will be published after grading" # optional; replaces a missing url, or follows it
+    authors: ["A. Author", { name: "D. Wüst", me: true, break_after: true }] # optional; `me` is bold, `break_after` wraps
     image: "assets/projects/path-tracer.jpg"       # optional; `page` layout only
     highlights: ["Wavefront path tracing …"]       # optional
     tags: ["Vulkan", "Slang"]

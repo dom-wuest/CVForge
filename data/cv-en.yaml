@@ -162,11 +162,34 @@ education:
 #   omit   -> left out entirely  (not "off" - YAML reads that as false)
 # `image` is only read by the page layout; the other two have no room for it.
 projects:
+  - id: llm-render-opt
+    name: "Efficient Validation for\nLLM-Generated Rendering Optimizations"
+    start: "2026"
+    end: "2026"
+    authors:
+      - "M. Dereviannykh"
+      - "D. Klepikov"
+      - "H. Brucker"
+      - { name: "D. Wüst", me: true, break_after: true }
+      - "B. Krimmel"
+      - "R. Dolp"
+      - "C. Dachsbacher"
+    url: "https://renderopt.github.io"
+    url_label: "renderopt.github.io"
+    url_note: "paper coming soon"
+    image: "assets/projects/llm-render-opt.jpg"
+    summary: >
+      LLM-driven evolutionary search finds shader and render-pass speedups of
+      up to 2.19×; a Bayesian sequential test proves them visually safe with
+      47–85% fewer validation renders.
+    tags: ["LLM", "Python", "GLSL"]
+
   - id: shader-lod
-    name: "Automatic Shader Function Level of Detail using Neural Networks and Symbolic Regression"
+    name: "Automatic Shader Function Level of Detail using\nNeural Networks and Symbolic Regression"
     start: "2026"
     end: "2026"
     url_note: "Code will be published after grading"
+    image: "assets/projects/shader-lod.jpg"
     summary: >
       Master's thesis: a data-driven approach to shader level of detail. Tiny
       MLPs and symbolic expressions are fitted automatically to approximate

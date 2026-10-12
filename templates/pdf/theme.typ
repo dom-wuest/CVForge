@@ -154,6 +154,7 @@
     // `0.5pt + rgb("#a8c6e4")` to bring it back.
     image-stroke: none,
     url-size: 8pt,
+    note-gap: 0.8em, // link -> its `url_note`, when a project has both
     row-gutter: 1.9em, // looser than the CV timeline; these entries are taller
   ),
 

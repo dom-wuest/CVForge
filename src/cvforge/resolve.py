@@ -200,6 +200,17 @@ def _skill_item(item: Any) -> dict[str, Any]:
     return {"name": item["name"], "rating": item.get("rating"), "note": item.get("note")}
 
 
+def _author(item: Any) -> dict[str, Any]:
+    """Normalise a project author to {name, me, break_after}, like skill items."""
+    if isinstance(item, str):
+        return {"name": item, "me": False, "break_after": False}
+    return {
+        "name": item["name"],
+        "me": item.get("me", False),
+        "break_after": item.get("break_after", False),
+    }
+
+
 def _one_line(value: str | None) -> str | None:
     """Collapse to a single line, for fields composed into a meta line."""
     return " ".join(value.split()) if value else None
@@ -278,6 +289,7 @@ def derive(data: dict[str, Any], lang: str, profile: str) -> dict[str, Any]:
         _add_dates(entry, lang, labels)
         entry["meta_line"] = _one_line(entry.get("role"))
         entry.setdefault("image", None)
+        entry["authors"] = [_author(author) for author in entry.get("authors", [])]
         if entry.get("url") and not entry.get("url_label"):
             entry["url_label"] = entry["url"].split("://", 1)[-1].rstrip("/")
 

@@ -309,11 +309,43 @@
             ]
           },
           "url_note": {
-            "description": "Shown in italics in place of the repository link when there is no `url` yet, e.g. 'Code will be published after grading'. Ignored when `url` is set.",
+            "description": "Shown in italics. Without `url` it stands in place of the link, e.g. 'Code will be published after grading'; with `url` it follows the link, e.g. 'paper under submission'.",
             "type": [
               "string",
               "null"
             ]
+          },
+          "authors": {
+            "description": "For a paper or other joint work. Listed in order; mark yourself as {name, me: true} to have your name set in bold.",
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "me": {
+                      "type": "boolean"
+                    },
+                    "break_after": {
+                      "description": "Start a new line after this author.",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ]
+            }
           }
         }
       }

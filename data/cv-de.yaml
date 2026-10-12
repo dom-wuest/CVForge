@@ -168,19 +168,41 @@ education:
 #   omit   -> gar nicht  (nicht "off" - YAML liest das als false)
 # `image` wertet nur das Seitenlayout aus.
 projects:
+  - id: llm-render-opt
+    name: "Efficient Validation for\nLLM-Generated Rendering Optimizations"
+    start: "2026"
+    end: "2026"
+    authors:
+      - "M. Dereviannykh"
+      - "D. Klepikov"
+      - "H. Brucker"
+      - { name: "D. Wüst", me: true, break_after: true }
+      - "B. Krimmel"
+      - "R. Dolp"
+      - "C. Dachsbacher"
+    url: "https://renderopt.github.io"
+    url_label: "renderopt.github.io"
+    url_note: "Paper folgt in Kürze"
+    image: "assets/projects/llm-render-opt.jpg"
+    summary: >
+      Eine LLM-gesteuerte evolutionäre Suche beschleunigt Shader und
+      Render-Passes um bis zu 2,19×; ein Bayes'scher sequenzieller Test sichert
+      sie mit 47–85 % weniger Validierungs-Renderings visuell ab.
+    tags: ["LLM", "Python", "GLSL"]
+
   - id: shader-lod
-    name: "Automatic Shader Function Level of Detail using Neural Networks and Symbolic Regression"
+    name: "Automatic Shader Function Level of Detail using\nNeural Networks and Symbolic Regression"
     start: "2026"
     end: "2026"
     url_note: "Code wird nach der Bewertung veröffentlicht"
+    image: "assets/projects/shader-lod.jpg"
     summary: >
-      Masterarbeit über einen datengetriebenen Ansatz für Shader Level of
-      Detail. Kleine MLPs und symbolische Ausdrücke werden automatisch an
-      Shader-Funktionen angepasst. Die Pipeline erzeugt Trainingsdaten,
-      trainiert die Modelle, optimiert Hyperparameter und bewertet Kandidaten
-      anhand des gerenderten Bildes. Zusätzlich wurde die Optimierung
-      hinsichtlich des finalen Bildes mittels Differentiable Rendering
-      untersucht.
+      Masterarbeit: datengetriebenes Shader Level of Detail. Kleine MLPs und
+      symbolische Ausdrücke werden automatisch an Shader-Funktionen angepasst.
+      Die Pipeline erzeugt Trainingsdaten, trainiert die Modelle, optimiert
+      Hyperparameter und bewertet Kandidaten anhand des gerenderten Bildes.
+      Zudem wurde die Optimierung auf das finale Bild mittels Differentiable
+      Rendering untersucht.
     tags: ["Machine Learning", "Python", "Slang"]
 
   - id: fluid-sim-2d
@@ -207,12 +229,11 @@ projects:
     url_label: "github.com/dom-wuest/NeuralPathGuiding"
     image: "assets/projects/neural-path-guiding.jpg"
     summary: >
-      Bachelorarbeit über ein kompaktes MLP zur Vorhersage einfallender
-      Beleuchtung auf Oberflächen und zur Steuerung nachfolgender Strahlen.
-      Trainingsdaten werden während des Renderns gesammelt und das Netzwerk
-      online trainiert, um vMF-Verteilungen vorherzusagen. Diese werden im
-      nächsten Frame für jeden Pixel genutzt, um Strahlen an der ersten
-      sichtbaren Oberfläche in Richtung heller Bereiche zu steuern.
+      Bachelorarbeit: Ein kompaktes MLP sagt die einfallende Beleuchtung auf
+      Oberflächen vorher und steuert nachfolgende Strahlen. Trainingsdaten
+      werden während des Renderns gesammelt und das Netzwerk online auf
+      vMF-Verteilungen trainiert. Im nächsten Frame lenken diese die Strahlen
+      an der ersten Oberfläche zu hellen Bereichen.
     tags: ["Path-Tracing", "Machine Learning", "CUDA"]
 
   - id: ivs3d
@@ -225,11 +246,10 @@ projects:
     summary: >
       Vorverarbeitung von Bildsequenzen für Structure-from-Motion mittels
       Computer-Vision-Algorithmen und Deep-Learning-Modellen. Das
-      Open-Source-Projekt wird seit über fünf Jahren aktiv weiterentwickelt und
-      unterstützt Windows und Linux. Es verfügt über eine Plugin-Architektur zur
-      Bildauswahl anhand von Kamerabewegung, visueller Ähnlichkeit und
-      GPS-Position sowie zur automatischen Maskierung dynamischer Objekte vor
-      dem Start einer konfigurierbaren SfM-Pipeline.
+      Open-Source-Projekt wird seit über fünf Jahren entwickelt und läuft unter
+      Windows und Linux. Plugins wählen Bilder anhand von
+      Kamerabewegung, visueller Ähnlichkeit und GPS-Position aus und maskieren
+      dynamische Objekte automatisch vor einer konfigurierbaren SfM-Pipeline.
     tags: ["C++", "Qt", "OpenCV"]
 
 # A list of groups, not a mapping - order is meaningful.
