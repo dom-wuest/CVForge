@@ -154,12 +154,25 @@ def _check_letters() -> list[str]:
         print("  schema ok")
 
         lang = data["meta"]["lang"]
-        cv_src = paths.source(lang)
+        cv_src = paths.cv_source(lang, slug)
         if not cv_src.is_file():
             out.append(f"[{slug}] declares lang={lang!r} but {paths.display(cv_src)} is missing")
             continue
 
-        ids = {c["id"] for c in resolve.load_yaml(cv_src).get("contacts", [])}
+        cv_data = resolve.load_yaml(cv_src)
+        if cv_src != paths.source(lang):
+            # A tailored CV gets the same validation as the base one, and the
+            # checks for what would break its build. Not the tag check: it is a
+            # copy, so that would only repeat the base CV's warnings per letter.
+            print(f"checking {paths.display(cv_src)}")
+            resolve.validate(cv_data, lang, cv_src)  # raises, like the base CV
+            print("  schema ok")
+            label = f"{slug}/cv.yaml"
+            out += _check_photo(cv_data, label)
+            out += _check_images(cv_data, label)
+            out += _check_ids(cv_data, label)
+
+        ids = {c["id"] for c in cv_data.get("contacts", [])}
         for cid in data.get("sender_contacts") or []:
             if cid not in ids:
                 out.append(f"[{slug}] sender_contacts: no contact {cid!r} in {cv_src.name}")

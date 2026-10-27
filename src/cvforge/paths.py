@@ -27,8 +27,8 @@ TEMPLATES = ROOT / "templates"
 ASSETS = ROOT / "assets"
 FONTS = ASSETS / "fonts"
 
-# One application per directory. letter.yaml is tracked; dossier.yaml and
-# posting/ are gitignored - see .gitignore for why.
+# One application per directory. Everything in it is gitignored except the
+# _template scaffold - see .gitignore for why.
 APPLICATIONS = ROOT / "applications"
 APPLICATION_TEMPLATE = APPLICATIONS / "_template"
 
@@ -97,6 +97,34 @@ def attachments(slug: str) -> Path:
     dossier - a work sample is not repository content.
     """
     return application(slug) / "attachments"
+
+
+def cv_override(slug: str) -> Path:
+    """A CV tailored to this application alone, created by `cvforge new --cv`.
+
+    A full copy of data/cv-<lang>.yaml rather than a patch: an application is
+    a snapshot of what was sent, so later edits to the base CV must not change
+    it retroactively - and the base CV feeds the website, so the tailoring must
+    not happen there.
+    """
+    return application(slug) / "cv.yaml"
+
+
+def cv_source(lang: str, slug: str | None = None) -> Path:
+    """The CV an application uses: its own override if present, else the base.
+
+    The one place that choice is made, so the letterhead, the attached CV and
+    `check` cannot disagree about which file they read.
+    """
+    if slug is not None and cv_override(slug).is_file():
+        return cv_override(slug)
+    return source(lang)
+
+
+def cv_resolved_for(slug: str) -> Path:
+    """The resolved tailored CV. Never build/cv-<lang>.json, which the base CV's
+    live preview reads and which must keep showing the base CV."""
+    return BUILD / f"cv-app-{slug}.json"
 
 
 def letter_resolved(slug: str) -> Path:

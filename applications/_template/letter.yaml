@@ -6,9 +6,12 @@
 # signature. Those come from data/cv-<lang>.yaml and the gitignored
 # data/private.yaml, so the letterhead can never drift out of step with the CV.
 #
-# This file IS tracked. Everything about the other party beyond the name in the
-# salutation - recruiter emails, phone numbers, the archived posting - belongs
-# in dossier.yaml next door, which is not.
+# Like everything under applications/ except this scaffold, this file is NOT
+# tracked: an application is archived on your machine, not in git. Recruiter
+# emails, phone numbers and notes on the posting belong in dossier.yaml next
+# door. To send a CV tailored to this job, create the application with
+# `cvforge new <slug> --cv` and edit the cv.yaml it copies here - never
+# data/cv-<lang>.yaml, which also feeds the website.
 #
 # The three YAML rules from data/cv-en.yaml apply here too. In particular:
 # quote the postcode, or "01067" becomes the number 1067.

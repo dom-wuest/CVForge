@@ -430,25 +430,34 @@ def resolve_letter(slug: str) -> tuple[dict[str, Any], list[str]]:
     validate_letter(data, slug)
 
     lang = data["meta"]["lang"]
-    if not paths.source(lang).is_file():
+    # The application's own tailored CV if it has one. The letterhead and the
+    # CV that `apply` attaches are read from this one file, so they cannot
+    # disagree.
+    cv_src = paths.cv_source(lang, slug)
+    if not cv_src.is_file():
         raise ResolveError(
             f"{paths.display(source)} declares lang={lang!r}, but "
-            f"{paths.display(paths.source(lang))} does not exist"
+            f"{paths.display(cv_src)} does not exist"
         )
 
     # The sender identity IS the CV's, resolved the same way. `full` is not a
     # choice here: a letter without a postal address is not a letter.
-    cv, cv_notes = resolve.resolve(lang, "full", quiet=True)
+    cv, cv_notes = resolve.resolve(lang, "full", quiet=True, source=cv_src)
 
     unknown = sorted(set(data.get("sender_contacts") or []) - {c["id"] for c in cv["contacts"]})
     if unknown:
         raise ResolveError(
             f"at $.sender_contacts: no contact with id(s) {', '.join(unknown)} in "
-            f"{paths.display(paths.source(lang))}"
+            f"{paths.display(cv_src)}"
         )
 
     private, notes = private_letter()
     artifact = derive(data, slug, cv, private)
+    # Read by `apply`, never by Typst: the CV it attaches is the one this
+    # letter's sender block came from - the same one-pass idea as attachments.
+    artifact["meta"]["cv_source"] = paths.display(cv_src)
+    if cv_src != paths.source(lang):
+        notes.append(f"using the tailored CV {paths.display(cv_src)}")
 
     # A document that HAS language-specific editions but not one for this
     # letter still produces a sendable folder, so this is a note rather than a

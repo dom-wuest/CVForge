@@ -10,6 +10,9 @@
 //
 // --root .  is what makes the absolute /build/... path below resolve to the
 // repo root; --font-path is what makes Font Awesome render at all.
+//
+// --input artifact=/build/cv-app-<slug>.json renders an application's tailored
+// CV instead (`cvforge apply` passes it); without it, the base CV for `lang`.
 
 #import "template.typ": cv-template
 #import "components/header.typ": header-from
@@ -23,7 +26,7 @@
 #import "sections/languages.typ": languages-aside
 
 #let lang = sys.inputs.at("lang", default: "en")
-#let cv = json("/build/cv-" + lang + ".json")
+#let cv = json(sys.inputs.at("artifact", default: "/build/cv-" + lang + ".json"))
 #let labels = cv.labels
 
 #show: cv-template.with(lang: lang)

@@ -86,14 +86,20 @@ def validate_against(data: dict[str, Any], schema_path: Path, label: str) -> Non
         raise ResolveError("\n".join(lines))
 
 
-def validate(data: dict[str, Any], lang: str) -> None:
-    """Validate one CV file, then check it declares the language it is named for."""
-    validate_against(data, paths.CV_SCHEMA, paths.source(lang).name)
+def validate(data: dict[str, Any], lang: str, source: Path | None = None) -> None:
+    """Validate one CV file, then check it declares the language it is used for.
+
+    `source` is the file the data came from - data/cv-<lang>.yaml, or an
+    application's tailored copy - so an error names the file to fix.
+    """
+    source = paths.source(lang) if source is None else source
+    validate_against(data, paths.CV_SCHEMA, paths.display(source))
 
     declared = data["meta"]["lang"]
     if declared != lang:
         raise ResolveError(
-            f"at $.meta.lang: declared {declared!r} but the file is data/cv-{lang}.yaml"
+            f"at $.meta.lang: declared {declared!r} but {paths.display(source)} "
+            f"is used as the {lang!r} CV"
         )
 
 
@@ -320,21 +326,40 @@ def derive(data: dict[str, Any], lang: str, profile: str) -> dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def resolve(lang: str, profile: str = "full", *, quiet: bool = False) -> tuple[dict, list[str]]:
-    """Run the whole pipeline in memory. Returns (resolved data, notes)."""
+def resolve(
+    lang: str,
+    profile: str = "full",
+    *,
+    quiet: bool = False,
+    source: Path | None = None,
+) -> tuple[dict, list[str]]:
+    """Run the whole pipeline in memory. Returns (resolved data, notes).
+
+    `source` replaces data/cv-<lang>.yaml - an application's tailored CV. It
+    goes through exactly the same validation and private merge; `export` never
+    passes it, so a tailored CV cannot reach the website.
+    """
     if profile not in PROFILES:
         raise ResolveError(f"unknown profile {profile!r}, expected one of {', '.join(PROFILES)}")
 
-    data = load_yaml(paths.source(lang))
-    validate(data, lang)
+    source = paths.source(lang) if source is None else source
+    data = load_yaml(source)
+    validate(data, lang, source)
     notes = merge_private(data, profile, quiet=quiet)
     return derive(data, lang, profile), notes
 
 
-def write(lang: str, profile: str = "full", *, quiet: bool = False) -> Path:
-    """Resolve and write build/cv-<lang>.json."""
-    data, notes = resolve(lang, profile, quiet=quiet)
-    target = paths.resolved(lang)
+def write(
+    lang: str,
+    profile: str = "full",
+    *,
+    quiet: bool = False,
+    source: Path | None = None,
+    target: Path | None = None,
+) -> Path:
+    """Resolve and write build/cv-<lang>.json, or `target` for a tailored CV."""
+    data, notes = resolve(lang, profile, quiet=quiet, source=source)
+    target = paths.resolved(lang) if target is None else target
     target.parent.mkdir(parents=True, exist_ok=True)
     # sort_keys keeps the diff readable if this ever gets committed for
     # debugging; list order - which is display order - is untouched.
@@ -344,8 +369,7 @@ def write(lang: str, profile: str = "full", *, quiet: bool = False) -> Path:
     if not quiet:
         for note in notes:
             print(f"  note: {note}")
-        rel = target.relative_to(paths.ROOT).as_posix()
-        print(f"  wrote {rel}  (lang={lang}, profile={profile})")
+        print(f"  wrote {paths.display(target)}  (lang={lang}, profile={profile})")
     return target
 
 

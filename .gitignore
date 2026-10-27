@@ -11,16 +11,15 @@ data/private.*.yaml
 # even by name, and a broken rule here still leaks nothing from git history.
 assets/private/
 
-# ─── Application dossiers ───────────────────────────────────────────────────
-# applications/<slug>/letter.yaml IS tracked: it is your own writing, and a
-# company's postal address is public imprint data. Everything about the other
-# party is not. A recruiter's name, email and phone are their personal data,
-# and an archived posting is someone else's copyrighted text; neither belongs
-# in a history that outlives the application.
-applications/*/dossier.yaml
-applications/*/posting/
-applications/*/attachments/
-!applications/_template/dossier.example.yaml
+# ─── Applications ───────────────────────────────────────────────────────────
+# Nothing under applications/ is tracked except the scaffold. A recruiter's
+# name, email and phone are their personal data, an archived posting is someone
+# else's copyrighted text, and the letter and tailored CV are drafts for one
+# employer - none of it belongs in a history that outlives the application, or
+# in a repository whose CV data also feeds a public website. Applications are
+# archived locally. The scaffold is tracked so `cvforge new` works on a clone.
+applications/*
+!applications/_template/
 
 # ─── Editable diagram sources ───────────────────────────────────────────────
 # draw.io exports embed their whole editable mxfile in a PNG metadata chunk.

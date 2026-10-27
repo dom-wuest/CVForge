@@ -62,8 +62,10 @@ data/private.yaml┘   (the resolved artifact) └─→ the website's data/ + s
    (gitignored)
 
 applications/<slug>/letter.yaml ─┐
-data/cv-<lang>.yaml (sender)    ─┼─→ build/letter-<slug>.json ─→ out/letters/<slug>.pdf
+applications/<slug>/cv.yaml      │  (tailored CV if present, else data/cv-<lang>.yaml)
+  or data/cv-<lang>.yaml (sender)┼─→ build/letter-<slug>.json ─→ out/letters/<slug>.pdf
 data/private.yaml (address, sig) ┘                              ─→ out/applications/<slug>/  (apply)
+                                     build/cv-app-<slug>.json  ─┘  (tailored CV only)
 ```
 
 **Renderers read only the resolved JSON.** Neither Typst template reads YAML,
@@ -93,11 +95,16 @@ renderer carries its own copy. To add a language: a block there, a
 
 ```
 data/                The CV content and private.example.yaml. Source of truth.
-applications/        One directory per application. _template/ is the scaffold.
-  <slug>/letter.yaml       tracked
-  <slug>/dossier.yaml      gitignored - the posting, recruiter contacts, status
-  <slug>/posting/          gitignored - the archived posting
-  <slug>/attachments/      gitignored - one-off files for this job
+applications/        One directory per application, ALL gitignored except
+                     _template/, the scaffold.
+  <slug>/letter.yaml       the letter
+  <slug>/cv.yaml           optional tailored CV (`new --cv`)
+  <slug>/dossier.yaml      the posting, recruiter contacts, status
+  <slug>/brief.md          the brief /new-application was run from
+  <slug>/posting/          the archived posting
+  <slug>/attachments/      one-off files for this job
+.claude/             Claude Code: the /new-application skill, the private-file
+                     hook and its settings. Tracked; holds no private data.
 schema/              JSON Schema for cv, letter and dossier; wired into VS Code.
 src/cvforge/
   paths.py             Every repo path, resolved once. Add path helpers here.
@@ -247,8 +254,9 @@ letter's vocabulary has no business on the website.
 
 `letter.resolve_letter(slug)` → validate `letter.yaml` against
 `schema/letter.schema.json` → check `meta.slug` matches the directory → call
-`resolve.resolve(lang, "full")` for the sender → `private_letter()` for
-address, signature, documents → `derive`. Writes `build/letter-<slug>.json`.
+`resolve.resolve(lang, "full", source=paths.cv_source(lang, slug))` for the
+sender → `private_letter()` for address, signature, documents → `derive`, then
+stamp `meta.cv_source`. Writes `build/letter-<slug>.json`.
 
 The artifact carries `attachments` (resolved `{label, file, lang_fallback}`)
 even though Typst never reads it: `apply` reads it to copy files, so what gets
@@ -364,14 +372,59 @@ cannot name a slug. `templates/letter/main.typ` therefore defaults to
 resolved artifact there on every change. The template prefers `doc.meta.lang`
 over `--input lang`, which says `en` regardless of which letter is open.
 
+### Per-application CV
+
+`cvforge new <slug> --cv` copies `data/cv-<lang>.yaml` to
+`applications/<slug>/cv.yaml` (schema hint rewritten to `../../schema/`, a
+header comment added). A full copy, not a patch: an application is a snapshot
+of what was sent, and the base CV feeds the website, so tailoring must never
+happen in `data/`.
+
+- `paths.cv_source(lang, slug)` is the **only** place the choice is made: the
+  override if the file exists, else the base. Letter, `apply` and `check` all
+  go through it.
+- `resolve.resolve/write` take `source=` (and `write` takes `target=`). The
+  override gets the same validation and the same `merge_private` as the base -
+  it is a copy with the same contact ids, so `private.yaml` just works.
+- The letter artifact carries `meta.cv_source`; `apply` builds the CV from
+  that, so the letterhead and the attached CV come from one file.
+- A tailored CV resolves to `build/cv-app-<slug>.json`, never over
+  `build/cv-<lang>.json` (which the base CV's Tinymist preview reads), and is
+  rendered with `--input artifact=/build/cv-app-<slug>.json`.
+- `export` never passes `source=`, so an override cannot reach the website.
+- `check` validates an override and runs the photo/image/id checks on it, but
+  not the tag check - that would only repeat the base CV's warnings.
+
+`apply` warns when the CV has more pages than `_expected_cv_pages` (1, or 2
+with `projects_layout: page`), and ends with a fixed-format `summary:` line
+that the `/new-application` skill parses. Change that format and the skill
+together.
+
 ### Tracked vs. not
 
-`letter.yaml` is tracked (your own writing; a company address is imprint
-data). `dossier.yaml`, `posting/`, `attachments/` are not (third-party
-personal data, copyrighted posting text, work samples). The scaffold's
-`dossier.example.yaml` is the tracked counterpart, the same pattern as
-`private.example.yaml`. The one unavoidable seam is the recipient's name in
-the salutation.
+Nothing under `applications/` is tracked except `_template/`. Letters and
+tailored CVs are drafts for one employer; dossiers, postings and attachments
+are third-party personal data, copyrighted text and work samples. The
+scaffold's `dossier.example.yaml` is tracked, the same pattern as
+`private.example.yaml`. If a change needs a test application, use a scratch
+slug and delete exactly that directory afterwards.
+
+### The /new-application skill
+
+`.claude/skills/new-application/` turns a markdown brief from the
+letter-writing chat into a built application: scaffold, fill `letter.yaml` and
+`dossier.yaml`, apply the brief's *confirmed* CV changes to the tailored copy,
+`apply`, look at the PDFs, report. `brief-format.md` there is the contract for
+the brief; `field-mapping.md` maps it onto the YAML. The skill changes layout
+knobs (`justify`, `compact`) to fit a page but never the wording. A brief
+without a postal address gets one looked up - the office in the job's city,
+else the headquarters, from the imprint or an official register - and the
+report flags it for confirmation.
+
+`.claude/hooks/protect_private.py` (registered in `.claude/settings.json`)
+blocks Write/Edit onto `data/private.yaml` and `assets/private/`, and shell
+commands that would copy, move, delete or redirect onto them - the incident
+described under [Guardrails](#guardrails). Reading is still allowed.
 
 ---
 
@@ -532,8 +585,15 @@ rm -rf /tmp/site
 # A letter end to end, on a scratch slug you delete afterwards
 uv run cvforge new scratch-verify --lang de
 uv run cvforge letter scratch-verify      # "(1 page)"
-uv run cvforge apply scratch-verify       # numbered folder
+uv run cvforge apply scratch-verify       # numbered folder, "summary: ... cv source data/cv-de.yaml"
 rm -rf applications/scratch-verify out/applications/scratch-verify out/letters/scratch-verify.pdf
+
+# A tailored CV: edit the copy's profile, then apply
+uv run cvforge new scratch-cv --lang en --cv
+uv run cvforge apply scratch-cv           # "cv source applications/scratch-cv/cv.yaml"
+git diff --quiet -- data/ && echo "base CV untouched"
+rm -rf applications/scratch-cv out/applications/scratch-cv
+rm -f build/cv-app-scratch-cv.json build/letter-scratch-cv.json build/letter-scratch-verify.json
 
 # Nothing private is tracked
 git status --short --untracked-files=all  # no dossier.yaml, posting/, attachments/, assets/private/

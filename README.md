@@ -64,7 +64,7 @@ Everything goes through one CLI. In VS Code the same commands are under
 | `uv run cvforge pdf --lang en` | Build `out/cv-en.pdf` (`--lang de` for German) |
 | `uv run cvforge all` | The CV for every language |
 | `uv run cvforge check` | Validate all data files, report content warnings |
-| `uv run cvforge new <slug> --lang de` | Scaffold a new application |
+| `uv run cvforge new <slug> --lang de` | Scaffold a new application (`--cv` adds a tailored CV copy) |
 | `uv run cvforge letter <slug>` | Build just that cover letter → `out/letters/<slug>.pdf` |
 | `uv run cvforge apply <slug>` | Build the send-ready folder: letter, CV, attachments |
 | `uv run cvforge dev --lang en` | Live-preview loop for the CV — see [Previewing](#previewing-while-you-write) |
@@ -79,7 +79,8 @@ Everything goes through one CLI. In VS Code the same commands are under
 |---|---|---|
 | CV content — experience, education, skills, projects | `data/cv-en.yaml`, `data/cv-de.yaml` | yes |
 | Phone number, street address, signature, which certificates exist | `data/private.yaml` | **no** |
-| A cover letter for one application | `applications/<slug>/letter.yaml` | yes |
+| A cover letter for one application | `applications/<slug>/letter.yaml` | **no** |
+| The CV for that application alone | `applications/<slug>/cv.yaml` (from `new --cv`) | **no** |
 | Notes on that application — the posting, who you spoke to, status | `applications/<slug>/dossier.yaml` | **no** |
 | The scanned certificates themselves | `assets/private/documents/` | **no** |
 | Your signature scan | `assets/private/signature.png` | **no** |
@@ -367,13 +368,21 @@ uv run cvforge new 2026-09-acme-rendering-engineer --lang de
 
 ```
 applications/2026-09-acme-rendering-engineer/
-  letter.yaml     the letter itself             TRACKED
-  dossier.yaml    the posting, the people       gitignored
-  posting/        the archived posting          gitignored
-  attachments/    one-off files for this job    gitignored
+  letter.yaml     the letter itself
+  cv.yaml         a tailored CV - only with `new --cv`
+  dossier.yaml    the posting, the people
+  posting/        the archived posting
+  attachments/    one-off files for this job
 ```
 
-Date-prefix the slug and the directory sorts itself chronologically.
+All of it is gitignored; only `applications/_template/` is tracked. Date-prefix
+the slug and the directory sorts itself chronologically.
+
+With a [brief](.claude/skills/new-application/brief-format.md) from the
+letter-writing chat, Claude Code does all of the below in one step:
+`/new-application path/to/brief.md` scaffolds the application, fills it in,
+tailors the CV copy, runs `apply` and reports page counts and anything that
+needs you.
 
 The letter YAML holds only what is specific to this application. Your name,
 tagline, contacts, address and signature come from the CV and `private.yaml`,
@@ -402,6 +411,31 @@ out/applications/2026-09-acme-rendering-engineer/
 documents are the same vintage, and the folder is emptied first so a dropped
 attachment cannot linger. If an attachment file is missing, `apply` refuses and
 names it rather than produce an incomplete application.
+
+`apply` ends with one line to read before sending:
+
+```
+summary: letter 1 page | cv 2 pages (expected 2) | cv source data/cv-de.yaml | 2 attachments
+```
+
+and warns if the letter is over a page, or the CV has more pages than its
+`projects_layout` allows - which means it overflowed.
+
+### A CV tailored to one application
+
+```bash
+uv run cvforge new 2026-09-acme-rendering-engineer --lang en --cv
+```
+
+copies `data/cv-en.yaml` to `applications/<slug>/cv.yaml`. Edit the copy -
+reword the profile, add relevant coursework, reorder skills. While it exists,
+`letter`, `apply` and `check` use it instead of the base CV, for the attached
+CV and the letterhead alike. `private.yaml` is merged into it exactly as into
+the base CV.
+
+The base CV is never touched, which matters because it also feeds the
+website: `export` only ever reads `data/cv-*.yaml`. The copy is a snapshot, so
+later edits to the base CV do not reach an application already sent.
 
 ### The letter YAML
 
@@ -458,12 +492,14 @@ here or cut a paragraph.
 
 ### What is tracked and what is not
 
-`letter.yaml` is committed: it is your own writing, and a company's postal
-address is public imprint data. `dossier.yaml`, `posting/` and `attachments/`
-are not: a recruiter's name and phone are someone else's personal data, and an
-archived posting is someone else's copyrighted text. Nothing renders from the
-dossier — it exists so that three weeks later, when the posting is gone and
-you are in the interview, the facts are still somewhere.
+Nothing under `applications/` is committed except the `_template/` scaffold. A
+recruiter's name and phone are someone else's personal data, an archived
+posting is someone else's copyrighted text, and a letter and tailored CV are
+drafts for one employer - none of it belongs in a repository whose CV data
+also feeds a public website. Back the directory up like any other local
+documents. Nothing renders from the dossier — it exists so that three weeks
+later, when the posting is gone and you are in the interview, the facts are
+still somewhere.
 
 Archive the posting as a **PDF print, not a screenshot**: the text stays
 selectable and you get the whole posting, not one viewport of it.

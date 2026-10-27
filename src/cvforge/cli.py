@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import unicodedata
+from datetime import date
 from pathlib import Path
 
 from . import check as check_mod
@@ -99,19 +100,24 @@ def _compile(main: Path, target: Path, inputs: dict[str, str]) -> int | None:
     return pages
 
 
-def _compile_pdf(lang: str, target: Path | None = None) -> Path:
-    """Compile the CV.
+def _compile_pdf(lang: str, target: Path | None = None, artifact: Path | None = None) -> int | None:
+    """Compile the CV. Returns the page count.
 
     `target` defaults to out/cv-<lang>.pdf. `export` passes a path in the
     website's working copy instead, so the public PDF never lands in out/ and
     overwrites the full-profile one you send with applications.
+
+    `artifact` is a resolved CV other than build/cv-<lang>.json - an
+    application's tailored copy. main.typ reads it by root-absolute path.
     """
     target = paths.pdf(lang) if target is None else target
-    _compile(paths.CV_MAIN, target, {"lang": lang})
-    return target
+    inputs = {"lang": lang}
+    if artifact is not None:
+        inputs["artifact"] = "/" + artifact.relative_to(paths.ROOT).as_posix()
+    return _compile(paths.CV_MAIN, target, inputs)
 
 
-def _compile_letter(slug: str, lang: str, target: Path) -> Path:
+def _compile_letter(slug: str, lang: str, target: Path) -> int | None:
     """Compile one cover letter, and complain if it did not come out on one page.
 
     A two-page cover letter is a content problem, not a layout one - nobody
@@ -126,7 +132,23 @@ def _compile_letter(slug: str, lang: str, target: Path) -> Path:
             f"crowding the address field.",
             file=sys.stderr,
         )
-    return target
+    return pages
+
+
+def _expected_cv_pages(cv: dict) -> int:
+    """How many pages a CV that has not overflowed comes out at.
+
+    One, plus the projects page when `projects_layout: page` gives projects one
+    of their own. More than this means the main page overflowed - the symptom
+    is a stub of the sidebar rule on the next page.
+    """
+    return 2 if cv["meta"].get("projects_layout") == "page" else 1
+
+
+def _pages(count: int | None) -> str:
+    if count is None:
+        return "? pages"
+    return f"{count} page{'s' if count != 1 else ''}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -187,7 +209,9 @@ def cmd_export(args: argparse.Namespace) -> int:
         print(f"  wrote {paths.display(target)}  (profile=public)")
         written.append(target)
 
-        written.append(_compile_pdf(lang, target=files_dir / f"cv-{lang}.pdf"))
+        pdf = files_dir / f"cv-{lang}.pdf"
+        _compile_pdf(lang, target=pdf)
+        written.append(pdf)
 
     # The same guard that protects out/, aimed at exactly the files just
     # written - not the whole directory, which also holds unrelated PDFs.
@@ -288,6 +312,14 @@ def cmd_apply(args: argparse.Namespace) -> int:
     the folder are guaranteed to be the same vintage, and in the same language
     as the letter. Both are profile=full - this folder is for an employer, not
     for the web.
+
+    The CV is the one the letter's sender block came from (`meta.cv_source`):
+    the application's tailored cv.yaml if it has one, else data/cv-<lang>.yaml.
+    A tailored CV resolves to its own build/cv-app-<slug>.json, never over the
+    base CV's artifact.
+
+    Ends with one `summary:` line in a fixed format, for whoever reads the
+    output - a person or the /new-application skill.
     """
     letter.write_letter(args.slug)
     artifact = json.loads(paths.letter_resolved(args.slug).read_text(encoding="utf-8"))
@@ -295,6 +327,8 @@ def cmd_apply(args: argparse.Namespace) -> int:
     labels = artifact["labels"]
     stem = _slugify_name(artifact["meta"]["name"])
     attached = artifact.get("attachments", [])
+    cv_source = paths.ROOT / artifact["meta"]["cv_source"]
+    tailored = cv_source != paths.source(lang)
 
     # Refuse before writing anything. A folder with a hole in it is worse than
     # no folder at all: the point of this command is that you can send what it
@@ -312,11 +346,30 @@ def cmd_apply(args: argparse.Namespace) -> int:
     _clear_bundle(out)
 
     print(f"[{args.slug}] letter")
-    _compile_letter(args.slug, lang, out / _send_name(1, stem, labels["file_letter"], ".pdf"))
+    letter_pages = _compile_letter(
+        args.slug, lang, out / _send_name(1, stem, labels["file_letter"], ".pdf")
+    )
 
-    print(f"[{args.slug}] cv ({lang})")
-    resolve.write(lang, "full", quiet=True)
-    _compile_pdf(lang, target=out / _send_name(2, stem, labels["file_cv"], ".pdf"))
+    print(f"[{args.slug}] cv ({lang}, {paths.display(cv_source)})")
+    cv_json = resolve.write(
+        lang,
+        "full",
+        quiet=True,
+        source=cv_source,
+        target=paths.cv_resolved_for(args.slug) if tailored else None,
+    )
+    cv_pages = _compile_pdf(
+        lang,
+        target=out / _send_name(2, stem, labels["file_cv"], ".pdf"),
+        artifact=cv_json if tailored else None,
+    )
+    expected = _expected_cv_pages(json.loads(cv_json.read_text(encoding="utf-8")))
+    if cv_pages is not None and cv_pages != expected:
+        print(
+            f"  warning: the CV is {_pages(cv_pages)}, expected {expected} - it overflowed. "
+            f"Shorten {paths.display(cv_source)}, or see 'Fitting on one page' in CLAUDE.md.",
+            file=sys.stderr,
+        )
 
     if attached:
         print(f"[{args.slug}] attachments")
@@ -327,6 +380,12 @@ def cmd_apply(args: argparse.Namespace) -> int:
             print(f"  wrote {paths.display(target)}")
 
     print(f"\nready to send: {paths.display(out)}  ({2 + len(attached)} files)")
+    print(
+        f"summary: letter {_pages(letter_pages)} | "
+        f"cv {_pages(cv_pages)} (expected {expected}) | "
+        f"cv source {paths.display(cv_source)} | "
+        f"{len(attached)} attachment{'s' if len(attached) != 1 else ''}"
+    )
     return 0
 
 
@@ -337,6 +396,9 @@ def cmd_new(args: argparse.Namespace) -> int:
         raise resolve.ResolveError(f"{paths.display(target)} already exists")
     if not paths.APPLICATION_TEMPLATE.is_dir():
         raise resolve.ResolveError(f"missing scaffold: {paths.display(paths.APPLICATION_TEMPLATE)}")
+    base = paths.source(args.lang)
+    if args.cv and not base.is_file():
+        raise resolve.ResolveError(f"--cv: {paths.display(base)} does not exist")
 
     target.mkdir(parents=True)
     written: list[Path] = []
@@ -355,6 +417,28 @@ def cmd_new(args: argparse.Namespace) -> int:
         dossier_file.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
         written.append(dossier_file)
 
+    # A CV tailored to this application: a full copy, so it is a snapshot of
+    # what was sent and later edits to the base CV do not reach back into it.
+    # The base CV also feeds the website, which is why tailoring happens here.
+    if args.cv:
+        text = base.read_text(encoding="utf-8")
+        # One directory deeper than data/, so the schema hint needs one more ../
+        text = text.replace("$schema=../schema/", "$schema=../../schema/", 1)
+        header = (
+            f"# Tailored copy of {paths.display(base)}, taken {date.today().isoformat()}.\n"
+            f"# For this application alone: `cvforge letter` and `apply` use it\n"
+            f"# instead of the base CV, and edits here never reach the website.\n"
+            f"# data/private.yaml is still merged in, exactly as for the base CV.\n"
+        )
+        first, _, rest = text.partition("\n")
+        if first.startswith("# yaml-language-server:"):
+            text = f"{first}\n#\n{header}{rest}"
+        else:
+            text = header + text
+        cv_file = paths.cv_override(args.slug)
+        cv_file.write_text(text, encoding="utf-8")
+        written.append(cv_file)
+
     # Both gitignored: the archived posting, and any work sample you send to
     # this company alone.
     (target / "posting").mkdir()
@@ -365,6 +449,8 @@ def cmd_new(args: argparse.Namespace) -> int:
     for directory in ("posting", "attachments"):
         print(f"  wrote {paths.display(target / directory)}/")
     print(f"\nnext: write {paths.display(letter_file)}, then `cvforge letter {args.slug}`")
+    if args.cv:
+        print(f"      tailor {paths.display(paths.cv_override(args.slug))}, then `cvforge apply`")
     return 0
 
 
@@ -483,6 +569,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("new", help="scaffold a new application under applications/")
     add_slug(p)
     add_lang(p)
+    p.add_argument(
+        "--cv",
+        action="store_true",
+        help="also copy data/cv-<lang>.yaml to applications/<slug>/cv.yaml, to tailor it",
+    )
     p.set_defaults(func=cmd_new)
 
     p = sub.add_parser("letter", help="build one application's cover letter")
