@@ -380,7 +380,8 @@ the slug and the directory sorts itself chronologically.
 
 With a [brief](.claude/skills/new-application/brief-format.md) from the
 letter-writing chat, Claude Code does all of the below in one step:
-`/new-application path/to/brief.md` scaffolds the application, fills it in,
+`/new-application` with the brief and the posting PDF attached (or their
+paths as arguments) scaffolds the application, fills it in,
 tailors the CV copy, runs `apply` and reports page counts and anything that
 needs you.
 

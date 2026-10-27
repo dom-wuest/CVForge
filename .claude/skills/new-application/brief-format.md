@@ -82,6 +82,9 @@ way; the skill maps by meaning, so English names work too.
   company's office in the job's city (else the headquarters) from the imprint
   or an official register, and reports it as looked up for you to confirm.
   Give the address in the brief whenever the posting has one.
+- **Hand over the brief together with the posting PDF.** Attach both to the
+  `/new-application` message, or pass their paths. The skill asks for
+  whichever is missing and never searches for it.
 - **Say how the application is submitted** (Bewerbung: portal / email /
   post). Only an electronic application may fall back to the compact layout
   when the letter is too long.

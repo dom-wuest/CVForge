@@ -1,14 +1,36 @@
 ---
 name: new-application
 description: Build a complete CVForge job application from a markdown brief written in the claude.ai letter chat - scaffold applications/<slug>/ with `cvforge new`, fill letter.yaml and dossier.yaml, apply confirmed CV changes to a tailored cv.yaml copy, run `cvforge apply`, check the PDFs and report page counts and problems. Use when the user hands over an application brief, cover letter text for a company, or says "create/build an application from this".
-argument-hint: <path to brief.md>
+argument-hint: <brief.md> <posting.pdf> (or attach both)
 allowed-tools: Read, Write, Edit, Glob, Grep, WebSearch, WebFetch, Bash(uv run cvforge:*), Bash(git status:*), Bash(git diff:*), Bash(git check-ignore:*)
 ---
 
 # /new-application
 
 Turn a brief into a send-ready folder in `out/applications/<slug>/`, then report.
-The brief is `$ARGUMENTS` (a path). If no path was given, ask for one.
+
+## Inputs
+
+The skill expects two inputs:
+
+1. **The brief** - a markdown file (`<company>-<role>.md`).
+2. **The posting** - a PDF of the job advertisement.
+
+Each one counts as given only if it is
+- **attached** to the message that invoked the skill (the usual way, from the
+  VS Code chat), or
+- named by a **path** in the arguments (`$ARGUMENTS`) or the message, and that
+  path resolves to an existing file.
+
+Check both before step 1. If either is missing - not attached, no path, or a
+path that does not resolve - **stop and ask the user to add it**, naming which
+one is missing (and the path you tried, if there was one). Do nothing else
+until both are there.
+
+**Never search for an input.** No Glob, Grep, `find` or `ls` to locate one -
+not in the repo, not in Downloads, nowhere else on the machine. A file name
+mentioned inside the brief (e.g. its `Quelle:` line) is the letter chat's
+reference, not a path to look for.
 
 Read before starting, in this directory:
 - [field-mapping.md](field-mapping.md) - brief → letter.yaml / dossier.yaml / cv.yaml
@@ -77,10 +99,14 @@ Read before starting, in this directory:
    all three `TODO` paragraphs.
 
 6. **Fill `applications/<slug>/dossier.yaml`** per field-mapping.md, and save
-   the brief verbatim as `applications/<slug>/brief.md` (Read, then Write).
-   If the brief names a posting file and it exists locally, copy it into
-   `applications/<slug>/posting/`. Otherwise put "posting not archived" under
-   "Needs your input".
+   the brief verbatim as `applications/<slug>/brief.md` (Write the attached or
+   read text). Archive the posting PDF in `applications/<slug>/posting/`:
+   - Given as a path: copy that file there, keeping its name, and set
+     `posting.archive` and `posting.fetched`.
+   - Attached without a path: its pages are in the conversation but there is
+     no file to copy. Use its text for `posting.notes`, leave
+     `posting.archive: null`, and under "Needs your input" ask the user to save
+     the PDF into `applications/<slug>/posting/`.
 
 7. **Tailor `applications/<slug>/cv.yaml`** (only if created in step 4). Apply
    each confirmed change as literally as the brief states it, to the entry it
