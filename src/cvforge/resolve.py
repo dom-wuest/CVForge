@@ -245,7 +245,8 @@ _GRADE_LABEL = {
 def _education_meta(entry: dict[str, Any], labels: dict[str, str]) -> str | None:
     """Compose 'Thesis: X - Minor: Y - Current Grade 1.2', skipping absent parts.
 
-    Built by collecting the present pieces and joining once, so an absent field
+    Coursework, if any, comes last: it is the longest piece and the one a reader
+    needs least. Built by collecting the present pieces and joining once, so an absent field
     can never leave a dangling separator.
     """
     parts: list[str] = []
@@ -258,6 +259,10 @@ def _education_meta(entry: dict[str, Any], labels: dict[str, str]) -> str | None
     if grade:
         label = labels[_GRADE_LABEL.get(entry.get("grade_note"), "grade")]
         parts.append(f"{label} {grade}")
+
+    coursework = _one_line(entry.get("coursework"))
+    if coursework:
+        parts.append(f"{labels['coursework']}: {coursework}")
 
     return i18n.META_SEP.join(parts) if parts else None
 

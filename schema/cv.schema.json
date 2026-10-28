@@ -227,6 +227,13 @@
               null
             ]
           },
+          "coursework": {
+            "description": "Relevant courses as one comma-separated string. Appended to the meta line after the grade; the 'Relevant coursework:' label is added by the renderer.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "tags": {
             "$ref": "#/$defs/tags"
           },
