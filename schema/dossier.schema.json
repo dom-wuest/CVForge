@@ -2,10 +2,94 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dom-wuest.de/cvforge/dossier.schema.json",
   "title": "CVForge application dossier",
-  "description": "Everything about an application that is NOT the letter: the posting, who you spoke to, where it stands. Gitignored - recruiter contacts are someone else's personal data and a posting is someone else's copyrighted text. No renderer reads this file; it exists so the facts are in one place when the interview comes.",
+  "description": "Everything about an application that is NOT the letter: what the job is, how you pitched yourself, the posting, who you spoke to, where it stands. Never committed - recruiter contacts are someone else's personal data and a posting is someone else's copyrighted text. No renderer reads this file. `cvforge list` does, to find earlier applications like a new one; `cvforge check` validates it. Title, language, reference and attachments are not repeated here: they are in letter.yaml.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "summary": {
+      "description": "One or two sentences on what the job is - the domain, the problem, the stack. The anchor for finding similar applications later, so write what makes this job this job, not what every posting says. E.g. 'C++ 3D reconstruction from aerial imagery and lidar at city scale (Reality Engine), geospatial.'",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "keywords": {
+      "description": "Free keywords for similarity: domain and technology, lowercase, English, singular. E.g. [3d reconstruction, photogrammetry, c++, geospatial]. No fixed vocabulary - reuse a word you used before where it fits, so `cvforge list --match` finds both.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "company": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "How you refer to the company, e.g. 'Esri R&D Center Stuttgart'. Omit to use letter.yaml's recipient.company, which is the legal entity.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "about": {
+          "description": "Two or three sentences on the company: what it makes, size, where.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "description": "The job title - only for an application without a letter.yaml, e.g. one built before CVForge. Otherwise the letter's job.title is the one used.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "location": {
+          "description": "Where the job is, as the posting says it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "work_model": {
+          "enum": [
+            "onsite",
+            "hybrid",
+            "remote",
+            null
+          ]
+        },
+        "employment": {
+          "enum": [
+            "full-time",
+            "part-time",
+            "internship",
+            "working-student",
+            "thesis",
+            null
+          ]
+        }
+      }
+    },
+    "applied": {
+      "description": "The day you submitted, \"YYYY-MM-DD\". null while it is a draft. Set it together with `status: applied` - `cvforge check` warns when the two disagree.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+    },
     "posting": {
       "type": "object",
       "additionalProperties": false,
@@ -25,7 +109,7 @@
           "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
         },
         "archive": {
-          "description": "Repo-relative path to the archived posting, e.g. applications/<slug>/posting/posting.pdf. Print to PDF rather than screenshot: it keeps the text selectable and the whole posting, not one viewport of it.",
+          "description": "The archived posting, relative to this application's directory, e.g. posting/posting.pdf - the same rule as a one-off attachment, so the path survives the application moving. Print to PDF rather than screenshot: it keeps the text selectable and the whole posting, not one viewport of it.",
           "type": [
             "string",
             "null"
@@ -44,6 +128,96 @@
             "string",
             "null"
           ]
+        }
+      }
+    },
+    "approach": {
+      "description": "How you pitched yourself. The part worth reusing: what to lead with for a job like this one.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "based_on": {
+          "description": "Slug of the earlier application this one started from, if any - its letter or CV structure.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "angle": {
+          "description": "What the letter leads with and argues - the hook, and the experience it puts first.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cv": {
+          "description": "The tailoring in short, one item per change: 'iVS3D first in projects', 'theses removed', 'skill group 3D reconstruction added'.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "gaps": {
+          "description": "Where you fall short of the posting, and how the letter handles it.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "submission": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "portal",
+            "email",
+            "post",
+            null
+          ]
+        },
+        "url": {
+          "description": "The application link, if it is not posting.url.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "questions": {
+          "description": "What the portal asks besides the documents, and your answer.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "question"
+            ],
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1
+              },
+              "answer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
         }
       }
     },

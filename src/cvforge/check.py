@@ -4,7 +4,7 @@
 a tag nobody lists as a skill is legitimate, just usually a typo.
 
 `check-clean` is the cheap guard against a mis-set profile: it greps the
-generated artifacts for the values in data/private.yaml. Publishing
+generated artifacts for the values in private.yaml. Publishing
 out/cv-en.html to a website is a one-way action, so this exists to be run
 before that, not after.
 """
@@ -53,6 +53,7 @@ def check(langs: tuple[str, ...] = i18n.LANGS) -> int:
         return 1
 
     warnings += _check_letters()
+    warnings += _check_dossiers()
     warnings += _check_documents()
     warnings += _check_private_coverage(langs)
 
@@ -196,6 +197,81 @@ def _check_letters() -> list[str]:
     return out
 
 
+# Text the scaffold used to ship as example values. Each one survived unedited
+# in a real dossier and was later read as a fact - a recruiter who does not
+# exist, an application date nobody chose.
+TEMPLATE_REMNANTS = (
+    "Anna Beispiel",
+    "Anything else worth remembering.",
+    "What they actually ask for, in your own words.",
+)
+# The old scaffold's timeline entry. Matched as a whole: "applied via the
+# company portal" is a fine thing to write yourself - with your own date.
+TEMPLATE_TIMELINE = {"date": "2026-09-08", "event": "Applied via the company portal"}
+
+# A status that means the application went out, so `applied` must say when.
+SENT = frozenset({"applied", "screening", "interview", "offer", "rejected"})
+
+
+def _check_dossiers() -> list[str]:
+    """Validate every dossier.yaml and report what makes it useless later.
+
+    A dossier is read weeks after it was written - before an interview, or by
+    `cvforge list` when a similar job comes up - so the smells are the ones
+    that mislead then: leftover template text, no summary to match on, a
+    status that says "applied" with no date.
+    """
+    if not paths.APPLICATIONS.is_dir():
+        return []
+
+    out: list[str] = []
+    slugs = {p.name for p in paths.APPLICATIONS.iterdir() if p.is_dir()}
+    for slug in sorted(s for s in slugs if not s.startswith("_")):
+        src = paths.dossier(slug)
+        if not src.is_file():
+            out.append(f"[{slug}] no dossier.yaml")
+            continue
+
+        print(f"checking {paths.display(src)}")
+        data = resolve.load_yaml(src)
+        resolve.validate_against(data, paths.DOSSIER_SCHEMA, paths.display(src))
+        print("  schema ok")
+
+        raw = src.read_text(encoding="utf-8")
+        for remnant in TEMPLATE_REMNANTS:
+            if remnant in raw:
+                out.append(f"[{slug}] dossier.yaml still contains template text {remnant!r}")
+        if TEMPLATE_TIMELINE in (data.get("timeline") or []):
+            out.append(
+                f"[{slug}] timeline still has the template entry "
+                f"{TEMPLATE_TIMELINE['date']} {TEMPLATE_TIMELINE['event']!r}"
+            )
+
+        if not data.get("summary") or not data.get("keywords"):
+            out.append(
+                f"[{slug}] dossier.yaml has no summary or keywords - "
+                f"`cvforge list --match` cannot find it"
+            )
+
+        status, applied = data.get("status"), data.get("applied")
+        if status in SENT and not applied:
+            out.append(f"[{slug}] status is {status!r} but `applied` has no date")
+        if applied and status in (None, "draft"):
+            out.append(f"[{slug}] `applied` is {applied} but status is still {status!r}")
+
+        archive = (data.get("posting") or {}).get("archive")
+        if archive and not (paths.application(slug) / archive).is_file():
+            out.append(
+                f"[{slug}] posting.archive {archive!r} does not exist "
+                f"(it is relative to the application directory)"
+            )
+
+        based_on = (data.get("approach") or {}).get("based_on")
+        if based_on and based_on not in slugs:
+            out.append(f"[{slug}] approach.based_on names no application {based_on!r}")
+    return out
+
+
 def _document_pool() -> dict[str, Any]:
     """The `documents:` declarations from private.yaml, keyed by id."""
     if not paths.PRIVATE.is_file():
@@ -222,7 +298,7 @@ def _check_documents() -> list[str]:
             out.append(f"[documents] {did}: declares no usable `file:`")
             continue
         for rel in named:
-            if not (paths.ROOT / rel).is_file():
+            if not paths.private_path(rel).is_file():
                 out.append(f"[documents] {did}: {rel} does not exist")
     return out
 
@@ -247,7 +323,7 @@ def _check_attachments(data: dict[str, Any], slug: str, lang: str) -> list[str]:
             if declared is None:
                 out.append(
                     f"[{slug}] attachments[{i}]: no document {entry!r} declared "
-                    f"in data/private.yaml"
+                    f"in {letter.PRIVATE_NAME}"
                 )
                 continue
             declared_file = declared.get("file", "")
@@ -352,12 +428,12 @@ def check_clean(targets: tuple[Path, ...] = (paths.BUILD, paths.OUT)) -> int:
     documents that happen to share the website's static/files directory.
     """
     if not paths.PRIVATE.is_file():
-        print("no data/private.yaml - nothing to check")
+        print(f"no {letter.PRIVATE_NAME} - nothing to check")
         return 0
 
     needles = _private_needles()
     if not needles:
-        print("data/private.yaml has no values - nothing to check")
+        print(f"{letter.PRIVATE_NAME} has no values - nothing to check")
         return 0
 
     scanned = 0

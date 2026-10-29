@@ -44,7 +44,7 @@
     },
     {
       "label": "Letter: Build send-ready folder",
-      "detail": "Letter + matching CV into out/applications/<slug>/.",
+      "detail": "Letter + matching CV into <home>/applications/<slug>/send/.",
       "type": "shell",
       "command": "uv run cvforge apply ${input:slug}",
       "group": "build",

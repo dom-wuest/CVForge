@@ -36,12 +36,19 @@ way; the skill maps by meaning, so English names work too.
 > | Unterlagen | Cover letter + CV, plus each further document by its name (Masterzeugnis, Bachelorzeugnis, Arbeitszeugnis Fraunhofer IOSB, …), or "keine Zeugnisse" |
 > | Bewerbung | How to apply: portal / email / post, plus every question the portal asks |
 > | Anzeige-Datei | File name of the archived posting PDF, if any |
+> | Arbeitsort | City; onsite / hybrid / remote; full-time / part-time / internship / working student / thesis |
+> | Basis | The earlier application this one builds on ("Aufbau wie NEURA"), or – |
+> | Kurzbeschreibung | One or two sentences: what this job is – domain, problem, stack. Written to be matched against the next similar posting. |
+> | Schlagworte | 5–10 keywords, lowercase English: domain and technology (3d reconstruction, cuda, robotics, …) |
 >
 > ## Unternehmen
 > Two or three sentences on the company.
 >
 > ## Stelle
 > Two or three sentences on what the role involves.
+>
+> ## Lücken
+> - Each requirement of the posting the CV does not meet, and how the letter handles it.
 >
 > ## Cover Letter
 > **<Subject line exactly as it should print>**
@@ -88,3 +95,7 @@ way; the skill maps by meaning, so English names work too.
 - **Say how the application is submitted** (Bewerbung: portal / email /
   post). Only an electronic application may fall back to the compact layout
   when the letter is too long.
+- **Kurzbeschreibung and Schlagworte are for finding this application
+  again.** They go into the dossier, not the letter. `cvforge list --match`
+  compares the next posting against them, newest first - so describe what
+  distinguishes the job, and reuse keywords from earlier briefs where they fit.

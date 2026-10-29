@@ -18,6 +18,7 @@ from datetime import date
 from pathlib import Path
 
 from . import check as check_mod
+from . import home as home_mod
 from . import i18n, letter, paths, resolve
 
 
@@ -271,8 +272,9 @@ def _clear_bundle(out: Path) -> None:
 
     Without this, dropping an attachment from the letter leaves the old file
     behind and you send it anyway - the exact failure this command exists to
-    prevent. Only ever the one slug's directory, which nothing but `apply`
-    writes to, under out/, which is generated and gitignored.
+    prevent. Only ever the one application's send/ folder, which nothing but
+    `apply` writes to, and only the files directly in it - never a directory,
+    never anything beside it.
     """
     if not out.is_dir():
         return
@@ -287,7 +289,7 @@ def _letter_target(slug: str, artifact: dict) -> Path:
     """Where `cvforge letter` puts the letter on its own.
 
     out/letters/, not the send folder: this is the draft you look at while
-    writing, and `apply` owns everything in out/applications/<slug>/. See
+    writing, and `apply` owns everything in the application's send/. See
     paths.letter_pdf for why mixing the two is a way to send the wrong file.
     """
     return paths.letter_pdf(slug)
@@ -305,6 +307,19 @@ def cmd_letter(args: argparse.Namespace) -> int:
     return 0
 
 
+def _sent_on(slug: str) -> str | None:
+    """Why the dossier says this application went out, or None if it did not."""
+    dossier_file = paths.dossier(slug)
+    if not dossier_file.is_file():
+        return None
+    dossier = resolve.load_yaml(dossier_file)
+    if dossier.get("applied"):
+        return f"applied {dossier['applied']}"
+    if dossier.get("status") in check_mod.SENT:
+        return f"status {dossier['status']}"
+    return None
+
+
 def cmd_apply(args: argparse.Namespace) -> int:
     """Build the whole send-ready folder: letter, CV, and every attachment.
 
@@ -320,14 +335,31 @@ def cmd_apply(args: argparse.Namespace) -> int:
 
     Ends with one `summary:` line in a fixed format, for whoever reads the
     output - a person or the /new-application skill.
+
+    Refuses, unless --force, once the dossier says the application went out:
+    send/ is then the record of what the employer received, and a rebuild
+    would replace it with what the sources produce today.
     """
+    sent = _sent_on(args.slug)
+    if sent and not args.force:
+        raise resolve.ResolveError(
+            f"{args.slug} was sent ({sent}), so {paths.display(paths.bundle(args.slug))} "
+            f"holds what the employer received. Rebuilding would replace it.\n"
+            f"  Use `cvforge letter {args.slug}` to look at a draft, or `apply --force` "
+            f"if you really mean to rebuild the folder."
+        )
+
     letter.write_letter(args.slug)
     artifact = json.loads(paths.letter_resolved(args.slug).read_text(encoding="utf-8"))
     lang = artifact["meta"]["lang"]
     labels = artifact["labels"]
     stem = _slugify_name(artifact["meta"]["name"])
     attached = artifact.get("attachments", [])
-    cv_source = paths.ROOT / artifact["meta"]["cv_source"]
+    # The same decision the letter's sender block was resolved from a moment
+    # ago (`meta.cv_source` records it). Asked again rather than parsed back
+    # out of the artifact, because a tailored CV in the home is an absolute
+    # path there, not a repo-relative one.
+    cv_source = paths.cv_source(lang, args.slug)
     tailored = cv_source != paths.source(lang)
 
     # Refuse before writing anything. A folder with a hole in it is worse than
@@ -339,7 +371,7 @@ def cmd_apply(args: argparse.Namespace) -> int:
         raise resolve.ResolveError(
             "these attachments have no file, so the folder was not built: "
             + ", ".join(unresolved)
-            + "\n  Check `documents:` in data/private.yaml, and that each `file:` exists."
+            + f"\n  Check `documents:` in {letter.PRIVATE_NAME}, and that each `file:` exists."
         )
 
     out = paths.bundle(args.slug)
@@ -402,6 +434,8 @@ def cmd_new(args: argparse.Namespace) -> int:
 
     target.mkdir(parents=True)
     written: list[Path] = []
+    # The `$schema=../../schema/` hints below resolve against this in a home.
+    home_mod.sync_schema()
 
     source = (paths.APPLICATION_TEMPLATE / "letter.yaml").read_text(encoding="utf-8")
     source = source.replace("slug: new-application", f"slug: {args.slug}")
@@ -413,8 +447,18 @@ def cmd_new(args: argparse.Namespace) -> int:
     # dossier.yaml is gitignored; the example it comes from is not.
     example = paths.APPLICATION_TEMPLATE / "dossier.example.yaml"
     if example.is_file():
+        # The one fact known now: the day it was started. `cvforge list` falls
+        # back to it for an application that has not been sent yet.
+        created = f'timeline:\n  - date: "{date.today().isoformat()}"\n    event: "Created"\n'
+        text = re.sub(
+            r"^timeline: \[\].*\n",
+            created,
+            example.read_text(encoding="utf-8"),
+            count=1,
+            flags=re.MULTILINE,
+        )
         dossier_file = paths.dossier(args.slug)
-        dossier_file.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
+        dossier_file.write_text(text, encoding="utf-8")
         written.append(dossier_file)
 
     # A CV tailored to this application: a full copy, so it is a snapshot of
@@ -428,7 +472,7 @@ def cmd_new(args: argparse.Namespace) -> int:
             f"# Tailored copy of {paths.display(base)}, taken {date.today().isoformat()}.\n"
             f"# For this application alone: `cvforge letter` and `apply` use it\n"
             f"# instead of the base CV, and edits here never reach the website.\n"
-            f"# data/private.yaml is still merged in, exactly as for the base CV.\n"
+            f"# private.yaml is still merged in, exactly as for the base CV.\n"
         )
         first, _, rest = text.partition("\n")
         if first.startswith("# yaml-language-server:"):
@@ -470,7 +514,7 @@ def cmd_dev(args: argparse.Namespace) -> int:
 
     slug = getattr(args, "letter", None)
     if slug:
-        print(f"watching data/ and applications/{slug}/ (Ctrl+C to stop)")
+        print(f"watching data/ and {paths.display(paths.application(slug))}/ (Ctrl+C to stop)")
         print("  tip: open templates/letter/main.typ and run 'Tinymist: Preview'")
     else:
         print(f"watching data/ for lang={args.lang} (Ctrl+C to stop)")
@@ -507,7 +551,97 @@ def cmd_dev(args: argparse.Namespace) -> int:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
+    home_mod.sync_schema()
     return check_mod.check()
+
+
+def _application_date(slug: str, dossier: dict) -> str:
+    """When this application happened, for sorting: sent, else started.
+
+    `applied` if it was sent; else the first timeline entry, which `new`
+    writes on the day it was created; else the slug's YYYY-MM prefix.
+    """
+    if dossier.get("applied"):
+        return dossier["applied"]
+    timeline = dossier.get("timeline") or []
+    if timeline and timeline[0].get("date"):
+        return timeline[0]["date"]
+    prefix = re.match(r"\d{4}-\d{2}", slug)
+    return prefix.group(0) if prefix else ""
+
+
+def _clip(text: str, width: int) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= width else text[: width - 1] + "…"
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    """Every application, newest first - optionally only those like a new one.
+
+    Newest first because the documents get better with every iteration: of
+    two similar applications, the recent one is the better starting point.
+    `--match` therefore filters but does not re-rank; the hit count is shown
+    beside the date so you can weigh the two yourself.
+    """
+    if not paths.APPLICATIONS.is_dir():
+        print(f"no applications in {paths.display(paths.APPLICATIONS)}")
+        return 0
+
+    words = [w.casefold() for w in args.match or []]
+    rows = []
+    for directory in sorted(p for p in paths.APPLICATIONS.iterdir() if p.is_dir()):
+        slug = directory.name
+        if slug.startswith("_"):
+            continue
+        dossier_file, letter_file = paths.dossier(slug), paths.letter_source(slug)
+        dossier = resolve.load_yaml(dossier_file) if dossier_file.is_file() else {}
+        letter_data = resolve.load_yaml(letter_file) if letter_file.is_file() else {}
+
+        status = dossier.get("status") or "?"
+        if args.status and status not in args.status:
+            continue
+
+        title = (letter_data.get("job") or {}).get("title") or (dossier.get("role") or {}).get(
+            "title", ""
+        )
+        company = (dossier.get("company") or {}).get("name") or (
+            letter_data.get("recipient") or {}
+        ).get("company", "")
+        summary = dossier.get("summary") or ""
+        keywords = dossier.get("keywords") or []
+
+        hits = ""
+        if words:
+            # Not the job title: an unwritten letter still carries the
+            # scaffold's "Rendering Engineer", and would match on it.
+            haystack = " ".join([summary, *keywords]).casefold()
+            found = sum(1 for w in words if w in haystack)
+            if not found:
+                continue
+            hits = f"  [{found}/{len(words)}]"
+
+        when = _application_date(slug, dossier)
+        rows.append((when, slug, status, company, title, summary, hits, keywords))
+
+    rows.sort(key=lambda r: r[0], reverse=True)
+    for when, slug, status, company, title, summary, hits, keywords in rows:
+        print(f"{when:<10}  {status:<10} {_clip(f'{company} · {title}', 76)}")
+        print(f"{'':<10}  {slug}{hits}")
+        if summary:
+            print(f"{'':<10}  {_clip(summary, 87)}")
+        if keywords:
+            print(f"{'':<10}  {_clip(', '.join(keywords), 87)}")
+        print()
+    print(f"{len(rows)} application(s) in {paths.display(paths.APPLICATIONS)}")
+    return 0
+
+
+def cmd_home(args: argparse.Namespace) -> int:
+    if args.action == "set":
+        if not args.dir:
+            raise resolve.ResolveError("usage: cvforge home set <dir>")
+        return home_mod.set_home(args.dir)
+    return home_mod.show()
 
 
 def cmd_check_clean(args: argparse.Namespace) -> int:
@@ -582,6 +716,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("apply", help="build the send-ready folder: letter + matching CV")
     add_slug(p)
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="rebuild send/ even though the dossier says it was already sent",
+    )
     p.set_defaults(func=cmd_apply)
 
     p = sub.add_parser("dev", help="watch data/ and regenerate the JSON")
@@ -604,12 +743,39 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("check-clean", help="fail if a private value reached build/ or out/")
     p.set_defaults(func=cmd_check_clean)
 
+    p = sub.add_parser("list", help="every application, newest first; --match finds similar ones")
+    p.add_argument(
+        "--match",
+        nargs="+",
+        metavar="WORD",
+        help="only applications whose keywords or summary contain one of these",
+    )
+    p.add_argument(
+        "--status",
+        nargs="+",
+        choices=("draft", "applied", "screening", "interview", "offer", "rejected", "withdrawn"),
+        help="only applications with one of these statuses",
+    )
+    p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser(
+        "home",
+        help="show where private.yaml and applications live, or `set` it for this machine",
+    )
+    p.add_argument("action", nargs="?", choices=("show", "set"), default="show")
+    p.add_argument("dir", nargs="?", help="with `set`: the folder, e.g. one OneDrive syncs")
+    p.set_defaults(func=cmd_home)
+
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        # `home` is how a broken setting gets fixed, so it is the one command
+        # that runs anyway. Everything else would read or write the wrong place.
+        if paths.HOME_PROBLEM and args.command != "home":
+            raise resolve.ResolveError(paths.HOME_PROBLEM)
         return args.func(args)
     except resolve.ResolveError as exc:
         print(f"error: {exc}", file=sys.stderr)

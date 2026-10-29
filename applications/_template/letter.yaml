@@ -3,8 +3,8 @@
 # One application's cover letter. Copied here by `uv run cvforge new <slug>`.
 #
 # What is NOT in this file: your name, tagline, contacts, postal address and
-# signature. Those come from data/cv-<lang>.yaml and the gitignored
-# data/private.yaml, so the letterhead can never drift out of step with the CV.
+# signature. Those come from data/cv-<lang>.yaml and private.yaml (in your
+# home), so the letterhead can never drift out of step with the CV.
 #
 # Like everything under applications/ except this scaffold, this file is NOT
 # tracked: an application is archived on your machine, not in git. Recruiter
@@ -71,7 +71,7 @@ body:
 
 # What to send alongside the letter and the CV, in the order an employer
 # should see them. Each entry is either the id of a document declared under
-# `documents:` in data/private.yaml, or a one-off for this application alone:
+# `documents:` in private.yaml, or a one-off for this application alone:
 #
 #   attachments:
 #     - masterzeugnis                       # from the shared pool
@@ -83,7 +83,7 @@ body:
 # matching this letter's `meta.lang` is the one that gets sent - so the same id
 # attaches the German scan here and the English one from an English letter.
 #
-# `cvforge apply` copies them into out/applications/<slug>/, numbered in this
+# `cvforge apply` copies them into this application's send/, numbered in this
 # order, and refuses to build the folder at all if one of them is missing.
 attachments: []
 

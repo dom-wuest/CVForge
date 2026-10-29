@@ -66,7 +66,7 @@ LETTER_LABELS: dict[str, dict[str, str]] = {
         "salutation_default": "Dear Hiring Team,",
         "closing": "Kind regards",
         "enclosures": "Enclosures",
-        # Used to name the files in out/applications/<slug>/.
+        # Used to name the files in an application's send/ folder.
         "file_letter": "Cover_Letter",
         "file_cv": "CV",
     },

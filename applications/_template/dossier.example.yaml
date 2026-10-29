@@ -1,40 +1,64 @@
 # yaml-language-server: $schema=../../schema/dossier.schema.json
 #
-# Copied to dossier.yaml by `uv run cvforge new <slug>`. That copy is
-# GITIGNORED and this example is not - the same split as
-# data/private.example.yaml against data/private.yaml.
+# Copied to dossier.yaml by `uv run cvforge new <slug>`. That copy lives in
+# your home and is never committed; this example is tracked - the same split
+# as data/private.example.yaml against private.yaml.
 #
-# Nothing renders from this file. It exists because the posting will be taken
-# down, and three weeks later in an interview you will want to know exactly
-# what it said and who you spoke to.
+# Nothing renders from this file. It exists for two moments: three weeks from
+# now, in the interview, when the posting has been taken down and you want to
+# know exactly what it said and who you spoke to - and the next time a job
+# like this one comes up, when `cvforge list --match` finds this application
+# and `approach` tells you what you led with.
+#
+# Every value starts empty on purpose. A placeholder that looks like data (a
+# made-up recruiter, an example date) survives unedited and is later mistaken
+# for a fact; `cvforge check` warns about the empty fields instead.
 #
 # Why it is not tracked: a recruiter's name, email and phone are someone
 # else's personal data, and a job posting is someone else's copyrighted text.
 # Neither belongs in a git history that outlives the application.
+
+# What the job is, in one or two sentences - the anchor for similarity.
+summary: null
+# Domain and technology, lowercase English: [3d reconstruction, c++, geospatial]
+keywords: []
+
+company:
+  name: null # how you call it; null = letter.yaml's recipient.company
+  about: null # two or three sentences: what it makes, size, where
+
+role:
+  location: null
+  work_model: null # onsite | hybrid | remote
+  employment: null # full-time | part-time | internship | working-student | thesis
+
+applied: null # "YYYY-MM-DD" when you submit - together with `status: applied`
 
 posting:
   url: null
   fetched: null # "YYYY-MM-DD" - dates the copy in posting/
   # Print the posting to PDF rather than screenshotting it: the text stays
   # selectable and you get the whole thing, not one viewport of it.
-  archive: null # e.g. applications/<slug>/posting/posting.pdf
+  archive: null # relative to this directory, e.g. posting/posting.pdf
   deadline: null
-  notes: >
-    What they actually ask for, in your own words. The requirements worth
-    answering in the letter.
+  notes: null # what they actually ask for, in your own words
 
-contacts:
-  - name: "Anna Beispiel"
-    role: "Recruiting"
-    email: null
-    phone: null
-    notes: null
+# How you pitched yourself - the part worth reusing for a similar job.
+approach:
+  based_on: null # slug of the application this one started from
+  angle: null # what the letter leads with
+  cv: [] # the tailoring, one item per change: "iVS3D first in projects"
+  gaps: [] # where you fall short of the posting, and how the letter handles it
+
+submission:
+  method: null # portal | email | post
+  url: null # the application link, if it is not posting.url
+  questions: [] # - question: "Notice period?"  answer: "none"
+
+contacts: [] # - name: "...", role: "Recruiting", email: null, phone: null, notes: null
 
 status: draft # draft | applied | screening | interview | offer | rejected | withdrawn
 
-timeline:
-  - date: "2026-09-08"
-    event: "Applied via the company portal"
+timeline: [] # `cvforge new` adds the day it was created; add an entry per event
 
-notes: >
-  Anything else worth remembering.
+notes: null

@@ -1,7 +1,9 @@
-"""Repo-relative paths, resolved once."""
+"""Repo-relative paths, resolved once - and the home your own data lives in."""
 
 from __future__ import annotations
 
+import os
+import re
 from pathlib import Path
 
 
@@ -27,22 +29,84 @@ TEMPLATES = ROOT / "templates"
 ASSETS = ROOT / "assets"
 FONTS = ASSETS / "fonts"
 
-# One application per directory. Everything in it is gitignored except the
-# _template scaffold - see .gitignore for why.
-APPLICATIONS = ROOT / "applications"
-APPLICATION_TEMPLATE = APPLICATIONS / "_template"
+# ─── Home ───────────────────────────────────────────────────────────────────
+# Your own data - private.yaml, the signature, the certificates, every
+# application - can live outside the repository, in a synced folder, so that a
+# second machine has it and so that it is backed up at all. Gitignored files
+# in a working copy have neither.
+#
+# Set once per machine with `cvforge home set <dir>`, which writes
+# LOCAL_CONFIG (gitignored). $CVFORGE_HOME overrides it. With neither, the
+# repository itself is the home and the layout is the one a fresh clone has:
+# applications/, data/private.yaml, assets/private/.
+
+HOME_ENV = "CVFORGE_HOME"
+LOCAL_CONFIG = ROOT / "cvforge.local.toml"
+
+# `home = '<dir>'`. A TOML literal string, so a Windows path needs no escaping.
+_HOME_LINE = re.compile(r"""^\s*home\s*=\s*'([^']*)'\s*$""", re.MULTILINE)
+
+
+def configured_home() -> tuple[Path | None, str | None]:
+    """The home directory as configured, and where the setting came from.
+
+    Read without validating it, so `cvforge home` can still report a setting
+    that points at a folder which is not there.
+    """
+    raw = os.environ.get(HOME_ENV, "").strip()
+    if raw:
+        return Path(raw).expanduser(), f"${HOME_ENV}"
+    if LOCAL_CONFIG.is_file():
+        found = _HOME_LINE.search(LOCAL_CONFIG.read_text(encoding="utf-8"))
+        if found and found.group(1).strip():
+            return Path(found.group(1).strip()).expanduser(), LOCAL_CONFIG.name
+    return None, None
+
+
+def home_problem(home: Path | None, origin: str | None) -> str | None:
+    """Why a configured home cannot be used, or None.
+
+    A home that is set but missing - OneDrive not synced yet, a laptop with a
+    different user folder - is an error rather than a quiet fallback to the
+    repository. Falling back would scaffold the next application inside the
+    working copy, where the other machine never sees it.
+    """
+    if home is None:
+        return None
+    if not home.is_absolute():
+        return f"{origin} sets the home to {home}, which is not an absolute path"
+    if not home.is_dir():
+        return (
+            f"{origin} sets the home to {home}, which does not exist. Wait for the sync, "
+            f"or point it elsewhere with `cvforge home set <dir>`."
+        )
+    return None
+
+
+HOME, HOME_SOURCE = configured_home()
+HOME_PROBLEM = home_problem(HOME, HOME_SOURCE)
+
+# Where private.yaml's relative paths (`signature`, `documents[].file`) start.
+PRIVATE_BASE = HOME or ROOT
+
+# One application per directory. In the repository, everything in it is
+# gitignored except the _template scaffold - see .gitignore for why. The
+# scaffold always stays in the repository: it is code, not your data.
+APPLICATIONS = (HOME or ROOT) / "applications"
+APPLICATION_TEMPLATE = ROOT / "applications" / "_template"
 
 # Never committed: the signature scan and the pool of documents you attach to
-# applications. Named only from data/private.yaml, which is itself gitignored,
+# applications. Named only from private.yaml, which is itself never committed,
 # so no tracked file mentions these paths.
-PRIVATE_ASSETS = ASSETS / "private"
+PRIVATE_ASSETS = HOME / "private" if HOME else ASSETS / "private"
 PRIVATE_DOCUMENTS = PRIVATE_ASSETS / "documents"
 
-PRIVATE = DATA / "private.yaml"
+PRIVATE = HOME / "private.yaml" if HOME else DATA / "private.yaml"
 
-CV_SCHEMA = ROOT / "schema" / "cv.schema.json"
-LETTER_SCHEMA = ROOT / "schema" / "letter.schema.json"
-DOSSIER_SCHEMA = ROOT / "schema" / "dossier.schema.json"
+SCHEMA = ROOT / "schema"
+CV_SCHEMA = SCHEMA / "cv.schema.json"
+LETTER_SCHEMA = SCHEMA / "letter.schema.json"
+DOSSIER_SCHEMA = SCHEMA / "dossier.schema.json"
 
 CV_MAIN = TEMPLATES / "pdf" / "main.typ"
 LETTER_MAIN = TEMPLATES / "letter" / "main.typ"
@@ -58,6 +122,22 @@ def display(path: Path) -> str:
         return path.relative_to(ROOT).as_posix()
     except ValueError:
         return path.as_posix()
+
+
+def private_path(rel: str) -> Path:
+    """A path named in private.yaml, which is relative to the home."""
+    return PRIVATE_BASE / rel
+
+
+def schema_mirror() -> Path | None:
+    """A copy of schema/ inside the home, or None when the repo is the home.
+
+    Every application file carries `$schema=../../schema/...`. That resolves to
+    the repository's schema/ when applications/ is in the repository, and to
+    this mirror when it is in the home - the same relative hint, on every
+    machine, whatever the repository's path there.
+    """
+    return HOME / "schema" if HOME else None
 
 
 def source(lang: str) -> Path:
@@ -152,4 +232,10 @@ def letter_pdf(slug: str) -> Path:
 
 
 def bundle(slug: str) -> Path:
-    return OUT / "applications" / slug
+    """The send-ready folder, next to the sources it was built from.
+
+    Inside the application rather than under out/, so the home holds what was
+    sent as well as what it was made from. `apply` empties it before every
+    build, which is why it is a folder of its own: nothing else lives in it.
+    """
+    return application(slug) / "send"

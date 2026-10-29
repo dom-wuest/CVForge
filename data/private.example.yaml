@@ -1,8 +1,13 @@
-# Copy this file to data/private.yaml and fill in the real values.
+# Copy this file to private.yaml in your home and fill in the real values.
 #
-#     cp data/private.example.yaml data/private.yaml
+#     uv run cvforge home          # says where that is
 #
-# data/private.yaml is gitignored and is the ONLY place a real phone number or
+# With a home set (`cvforge home set <dir>`) that is <home>/private.yaml, and
+# every path below is relative to the home: private/signature.png,
+# private/documents/... Without one it is data/private.yaml (gitignored), and
+# the paths are relative to the repository: assets/private/...
+#
+# private.yaml is never committed and is the ONLY place a real phone number or
 # street address may appear. It is shared across all languages, and by the CV
 # and the cover letters alike.
 #
@@ -50,14 +55,15 @@ address:
   city: "Karlsruhe"
   country: null # printed only when the recipient is abroad
 
-# Your signature scan, as a repo-relative path. assets/private/ is gitignored,
-# so the image never enters the repository and this file - which names it - is
-# not in the repository either.
+# Your signature scan, relative to the home (see the top of this file). It is
+# outside the repository - or in gitignored assets/private/ without a home - so
+# the image never enters the repository, and neither does this file, which
+# names it.
 #
 # A transparent PNG works best; roughly 800px wide from a black-pen scan.
 # Missing file or null = the letter prints the typed name alone, which is
 # legally just as good for an emailed PDF.
-signature: "assets/private/signature.png"
+signature: "private/signature.png"
 
 # The documents you attach to applications: diplomas, transcripts, references.
 # One declaration each, referenced from any number of letters by `id` - your
@@ -84,7 +90,7 @@ signature: "assets/private/signature.png"
 # both the build and `cvforge check` say so - it is still a real document, so
 # this is a warning rather than a refusal.
 #
-# Put the files in assets/private/documents/ - gitignored, like the signature.
+# Put the files in <home>/private/documents/, beside the signature.
 # `cvforge apply` copies them into the send folder; `cvforge check` warns about
 # one whose file has gone missing, and `apply` refuses to build the folder at
 # all rather than produce an incomplete application.
@@ -92,13 +98,13 @@ signature: "assets/private/signature.png"
 documents:
   # One file, one name. Issued in German, sent as-is to everyone.
   - id: masterzeugnis
-    file: "assets/private/documents/masterzeugnis.pdf"
+    file: "private/documents/masterzeugnis.pdf"
     label: "Masterzeugnis"
 
   # One file, two names. The certificate itself is bilingual, so there is
   # nothing to switch but the wording in the Anlagen line.
   - id: bachelorzeugnis
-    file: "assets/private/documents/bachelorzeugnis.pdf"
+    file: "private/documents/bachelorzeugnis.pdf"
     label:
       de: "Bachelorzeugnis"
       en: "Bachelor's Degree Certificate"
@@ -107,14 +113,14 @@ documents:
   # German application must not receive the English edition.
   - id: transcript-master
     file:
-      de: "assets/private/documents/notenauszug_master_de.pdf"
-      en: "assets/private/documents/transcript_master_en.pdf"
+      de: "private/documents/notenauszug_master_de.pdf"
+      en: "private/documents/transcript_master_en.pdf"
     label:
       de: "Notenauszug (laufendes Masterstudium)"
       en: "Transcript of Records (Master, in progress)"
 
   - id: az-xyzgmbh
-    file: "assets/private/documents/arbeitszeugnis.pdf"
+    file: "private/documents/arbeitszeugnis.pdf"
     label:
       de: "Arbeitszeugnis XYZ GmbH"
       en: "Reference, XYZ GmbH"

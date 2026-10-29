@@ -46,3 +46,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 *.swp
+
+# ─── Per-machine settings ───────────────────────────────────────────────────
+# Written by `cvforge home set`: where this machine keeps private.yaml and the
+# applications. A path on one machine is meaningless on another.
+cvforge.local.toml

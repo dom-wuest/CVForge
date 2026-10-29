@@ -17,6 +17,7 @@ signature, certificates) is kept out of every tracked file by construction.
 - [Project layout](#project-layout)
 - [Conventions](#conventions)
 - [The private-data guarantee](#the-private-data-guarantee)
+- [The home](#the-home)
 - [The resolve step](#the-resolve-step)
 - [Cover letters](#cover-letters)
 - [Styling the CV](#styling-the-cv)
@@ -28,9 +29,12 @@ signature, certificates) is kept out of every tracked file by construction.
 
 ## Guardrails
 
-**Never overwrite, move or delete `data/private.yaml` or anything under
-`assets/private/`.** They are gitignored and there is no copy anywhere — a
-deleted signature scan or certificate is gone. This has happened once, from a
+**Never overwrite, move or delete `private.yaml` or anything under the
+private folder** — `data/private.yaml` and `assets/private/` in the repository,
+or `<home>/private.yaml` and `<home>/private/` once a [home](#the-home) is set
+(`uv run cvforge home` says which). The same goes for the home's
+`applications/` as a whole. None of it is in git — a deleted signature scan or
+certificate is gone, and OneDrive syncs a deletion as faithfully as a file. This has happened once, from a
 test that ran `cp data/private.example.yaml data/private.yaml` and a cleanup
 that ran `rm -rf data/private.yaml assets/private`. The user's real
 `private.yaml` was only recovered because VS Code happened to have a local
@@ -38,18 +42,21 @@ history snapshot; the signature scan had to be re-scanned.
 
 For tests:
 
-- Never create `data/private.yaml` if it exists. Read it if you need to know
+- Prefer a **scratch home**: `CVFORGE_HOME=<a new empty dir>` for the shell
+  running the test. Nothing in the real home or the repository is touched,
+  and a fake `private.yaml` there is yours to create and delete.
+- Never create a real `private.yaml` if it exists. Read it if you need to know
   what is in it; do not print its values.
 - Use a scratch application slug (`cvforge new scratch-…`) and delete only
   that directory afterwards.
-- Never write to `assets/private/`. If a test needs a document, point a
+- Never write to the real private folder. If a test needs a document, point a
   scratch letter's one-off `{file, label}` entry at a file under the scratch
   application's own `attachments/`.
 - Cleanup commands must name the files they created, not patterns. Never
   `rm -rf` a directory you did not create in the same session.
 
-`build/` and `out/` are generated and safe to delete. `out/applications/<slug>/`
-is emptied by `apply` by design.
+`build/` and `out/` are generated and safe to delete. An application's `send/`
+folder is emptied by `apply` by design.
 
 ---
 
@@ -58,15 +65,19 @@ is emptied by `apply` by design.
 ```
 data/cv-en.yaml ─┐
 data/cv-de.yaml ─┼─→ build/cv-<lang>.json ──┬─→ out/cv-<lang>.pdf            (profile=full)
-data/private.yaml┘   (the resolved artifact) └─→ the website's data/ + static/  (profile=public)
-   (gitignored)
+private.yaml    ─┘   (the resolved artifact) └─→ the website's data/ + static/  (profile=public)
+   (in the home)
 
 applications/<slug>/letter.yaml ─┐
 applications/<slug>/cv.yaml      │  (tailored CV if present, else data/cv-<lang>.yaml)
   or data/cv-<lang>.yaml (sender)┼─→ build/letter-<slug>.json ─→ out/letters/<slug>.pdf
-data/private.yaml (address, sig) ┘                              ─→ out/applications/<slug>/  (apply)
+private.yaml (address, sig)     ─┘                              ─→ applications/<slug>/send/  (apply)
                                      build/cv-app-<slug>.json  ─┘  (tailored CV only)
 ```
+
+`private.yaml` and `applications/` are in the [home](#the-home) - a folder
+outside the repository - when one is set, and in the repository (gitignored)
+when not. `build/` and `out/` are always local.
 
 **Renderers read only the resolved JSON.** Neither Typst template reads YAML,
 and neither knows `private.yaml` exists. `resolve.py` (CV) and `letter.py`
@@ -95,19 +106,16 @@ renderer carries its own copy. To add a language: a block there, a
 
 ```
 data/                The CV content and private.example.yaml. Source of truth.
-applications/        One directory per application, ALL gitignored except
-                     _template/, the scaffold.
-  <slug>/letter.yaml       the letter
-  <slug>/cv.yaml           optional tailored CV (`new --cv`)
-  <slug>/dossier.yaml      the posting, recruiter contacts, status
-  <slug>/brief.md          the brief /new-application was run from
-  <slug>/posting/          the archived posting
-  <slug>/attachments/      one-off files for this job
+applications/_template/   The scaffold `cvforge new` copies. The only tracked
+                     part of applications/; without a home, the applications
+                     themselves live beside it, gitignored.
+cvforge.local.toml   GITIGNORED. This machine's home (`cvforge home set`).
 .claude/             Claude Code: the /new-application skill, the private-file
                      hook and its settings. Tracked; holds no private data.
 schema/              JSON Schema for cv, letter and dossier; wired into VS Code.
 src/cvforge/
-  paths.py             Every repo path, resolved once. Add path helpers here.
+  paths.py             Every repo path, resolved once - and the home. Add path helpers here.
+  home.py              `cvforge home`: show or set the home; the schema mirror.
   resolve.py           CV: load -> validate -> merge private -> derive -> write.
   letter.py            Letter: the same shape, plus attachments.
   check.py             `check` (content warnings) and `check-clean` (leak scan).
@@ -126,8 +134,24 @@ templates/letter/    The letter renderer. Imports ../pdf/ for theme, icons and
 assets/
   fonts/               Committed, SIL OFL. Inter, JetBrains Mono, Font Awesome 7.
   projects/            Screenshots for the projects page.
-  private/             GITIGNORED. signature.png and documents/.
+  private/             GITIGNORED. Without a home: signature.png and documents/.
 build/  out/         Generated. Both gitignored.
+```
+
+The home (a OneDrive folder on the user's machines):
+
+```
+private.yaml             contacts, address, signature, documents manifest
+private/                 signature.png, documents/ - paths in private.yaml are relative to the home
+applications/<slug>/
+  letter.yaml              the letter
+  cv.yaml                  optional tailored CV (`new --cv`)
+  dossier.yaml             the posting, recruiter contacts, status
+  brief.md                 the brief /new-application was run from
+  posting/                 the archived posting
+  attachments/             one-off files for this job
+  send/                    what `apply` built - emptied and refilled on every run
+schema/                  a mirror of schema/, kept current by `new`, `check`, `home set`
 ```
 
 There is no `templates/web/`. Web presentation lives in the Portfolio repo.
@@ -187,8 +211,11 @@ Two profiles:
 
 Four layers, each independent:
 
-1. `.gitignore` blocks `data/private.yaml`, `assets/private/`, `build/`, `out/`,
-   and the gitignored parts of `applications/*/`.
+1. With a home, private data and applications are not in the working copy at
+   all - `home set` refuses a folder inside the repository. Without one,
+   `.gitignore` blocks `data/private.yaml`, `assets/private/`, and the
+   gitignored parts of `applications/*/`. `build/` and `out/` are ignored
+   either way.
 2. Committed data holds placeholders only — a broken `.gitignore` still leaks
    nothing, and there has never been a real phone number in git history.
 3. `resolve` stamps `meta.profile`. `export` re-reads the artifact and refuses
@@ -223,6 +250,46 @@ covers them by asserting the artifact they were rendered from is public.
 
 If `private.yaml` does not exist, everything builds with placeholders and one
 note. A fresh clone and CI need no special-casing.
+
+---
+
+## The home
+
+Gitignored files in a working copy exist on one machine and are backed up
+nowhere. The home moves everything personal - `private.yaml`, the signature,
+the certificates, every application - into a folder of its own, normally one
+OneDrive syncs, so a second machine has it and a deletion can be undone.
+
+`paths.configured_home()` reads, in order: `$CVFORGE_HOME`, then
+`cvforge.local.toml` (`home = '<dir>'`, a TOML literal string so a Windows
+path needs no escaping, written by `cvforge home set`). Neither → the
+repository is the home, which is exactly the pre-home layout, so a fresh clone
+and CI need nothing. Everything downstream goes through `paths`:
+
+- `APPLICATIONS`, `PRIVATE`, `PRIVATE_ASSETS` move with the home;
+  `APPLICATION_TEMPLATE` never does - it is code.
+- `private_path(rel)` resolves `signature` and `documents[].file` against the
+  home (`PRIVATE_BASE`), or the repository without one.
+- `bundle(slug)` is `application(slug)/send`, so what was sent sits next to
+  what it was made from.
+
+**A configured but missing home is an error**, `paths.HOME_PROBLEM`, raised by
+`cli.main` for every command but `home`. Falling back to the repository would
+quietly scaffold the next application where the other machine never sees it.
+
+**Typst cannot read the home.** `--root .` confines it to the repository, so
+`letter._typst_visible` copies a signature outside it to
+`build/private/signature.<ext>` and the artifact points there. Nothing else
+Typst reads is personal: attachments are copied by `apply` in Python.
+
+**Schema hints.** Application files start with `$schema=../../schema/...`. In
+the repository that is `schema/`; in the home it is `<home>/schema/`, a mirror
+`home.sync_schema()` refreshes from `new`, `check` and `home set`. Same hint,
+every machine, whatever the repository's path there.
+
+`home.py` writes only `cvforge.local.toml` and the mirror. It never moves
+data: `cvforge home` lists what is still only in the repository, and moving it
+is the user's job (see [Guardrails](#guardrails)).
 
 ---
 
@@ -360,6 +427,12 @@ dropped attachment cannot linger. Copies are `shutil.copyfile`, byte-exact,
 which is what preserves digital signatures on certificates — merging or
 re-saving would break them.
 
+**Once sent, `send/` is the record.** `apply` refuses (`_sent_on`) when the
+dossier has an `applied` date or a status in `check.SENT`, because emptying and
+rebuilding the folder would replace what the employer received with what the
+sources produce today - a later base CV, a different build date. `--force`
+overrides it; `cvforge letter` still builds a draft to look at.
+
 `cvforge letter` writes to `out/letters/<slug>.pdf`, outside the bundle, so a
 draft rebuilt after `apply` cannot leave a stale numbered letter beside a fresh
 unnumbered one.
@@ -386,8 +459,9 @@ happen in `data/`.
 - `resolve.resolve/write` take `source=` (and `write` takes `target=`). The
   override gets the same validation and the same `merge_private` as the base -
   it is a copy with the same contact ids, so `private.yaml` just works.
-- The letter artifact carries `meta.cv_source`; `apply` builds the CV from
-  that, so the letterhead and the attached CV come from one file.
+- The letter artifact carries `meta.cv_source` (for the reader; in a home it
+  is an absolute path). `apply` asks `paths.cv_source` again rather than
+  parsing it back, so the letterhead and the attached CV come from one file.
 - A tailored CV resolves to `build/cv-app-<slug>.json`, never over
   `build/cv-<lang>.json` (which the base CV's Tinymist preview reads), and is
   rendered with `--input artifact=/build/cv-app-<slug>.json`.
@@ -400,14 +474,42 @@ with `projects_layout: page`), and ends with a fixed-format `summary:` line
 that the `/new-application` skill parses. Change that format and the skill
 together.
 
+### The dossier
+
+`dossier.yaml` is read by nothing that renders. `check._check_dossiers`
+validates it against `schema/dossier.schema.json` (a failure raises, as for a
+letter) and warns about what makes it useless later: text from the old
+scaffold (`TEMPLATE_REMNANTS` - "Anna Beispiel" and an invented applied date
+once survived unedited and read as facts), no `summary`/`keywords`, a sent
+`status` with no `applied` date or the reverse, a `posting.archive` that does
+not exist, an `approach.based_on` naming no application.
+
+The scaffold therefore ships every value empty; `new` adds only a dated
+"Created" timeline entry. `posting.archive` is relative to the application
+directory, like a one-off attachment, so it survives the home moving.
+
+Title, language, reference and attachments are deliberately not in the
+dossier - `letter.yaml` has them, and two copies would drift. The one
+exception is `role.title`, for an application that has no `letter.yaml` (sent
+before CVForge, only the PDFs archived); `list` falls back to it.
+
+`cvforge list` reads dossier and letter, sorts newest first by
+`_application_date` (`applied`, else the first timeline date, else the slug's
+`YYYY-MM`), and with `--match` keeps applications whose keywords or summary
+contain any of the words - not the job title, which an unwritten letter still
+has from the scaffold. It filters but does not re-rank: the CV
+and letters improve with each application, so recency stays the order and
+the hit count is printed beside it.
+
 ### Tracked vs. not
 
-Nothing under `applications/` is tracked except `_template/`. Letters and
-tailored CVs are drafts for one employer; dossiers, postings and attachments
-are third-party personal data, copyrighted text and work samples. The
-scaffold's `dossier.example.yaml` is tracked, the same pattern as
-`private.example.yaml`. If a change needs a test application, use a scratch
-slug and delete exactly that directory afterwards.
+Nothing under `applications/` is tracked except `_template/`, and with a home
+the applications are not in the repository at all. Letters and tailored CVs
+are drafts for one employer; dossiers, postings and attachments are
+third-party personal data, copyrighted text and work samples. The scaffold's
+`dossier.example.yaml` is tracked, the same pattern as `private.example.yaml`.
+If a change needs a test application, use a scratch home or a scratch slug and
+delete exactly that afterwards.
 
 ### The /new-application skill
 
@@ -422,9 +524,13 @@ else the headquarters, from the imprint or an official register - and the
 report flags it for confirmation.
 
 `.claude/hooks/protect_private.py` (registered in `.claude/settings.json`)
-blocks Write/Edit onto `data/private.yaml` and `assets/private/`, and shell
-commands that would copy, move, delete or redirect onto them - the incident
-described under [Guardrails](#guardrails). Reading is still allowed.
+blocks Write/Edit onto `private.yaml` and the private folder - in the
+repository and in the home, which it reads from `cvforge.local.toml` itself -
+and shell commands that would copy, move, delete or redirect onto them, or
+delete the home or its `applications/` - the incident described under
+[Guardrails](#guardrails). Reading is still allowed. It matches any
+`private.yaml` and any `/private/` path component in a write command, so a
+command like `ls build/private && sed -i …` is blocked too; split it.
 
 ---
 
@@ -582,23 +688,36 @@ mkdir -p /tmp/site/config/_default && touch /tmp/site/config/_default/hugo.yaml
 uv run cvforge export --to /tmp/site     # must end with "clean"
 rm -rf /tmp/site
 
-# A letter end to end, on a scratch slug you delete afterwards
+# Letters run in a scratch home, so the real one is never written to.
+# (PowerShell: $env:CVFORGE_HOME = "...")
+export CVFORGE_HOME="$(mktemp -d)"
+uv run cvforge home                       # ok-lines for applications/, missing private.yaml
+
+# A letter end to end
 uv run cvforge new scratch-verify --lang de
-uv run cvforge letter scratch-verify      # "(1 page)"
-uv run cvforge apply scratch-verify       # numbered folder, "summary: ... cv source data/cv-de.yaml"
-rm -rf applications/scratch-verify out/applications/scratch-verify out/letters/scratch-verify.pdf
+uv run cvforge letter scratch-verify      # "(1 page)", placeholder-address note
+uv run cvforge apply scratch-verify       # <home>/applications/scratch-verify/send/, "cv source data/cv-de.yaml"
 
 # A tailored CV: edit the copy's profile, then apply
 uv run cvforge new scratch-cv --lang en --cv
-uv run cvforge apply scratch-cv           # "cv source applications/scratch-cv/cv.yaml"
+uv run cvforge apply scratch-cv           # "cv source <home>/applications/scratch-cv/cv.yaml"
 git diff --quiet -- data/ && echo "base CV untouched"
-rm -rf applications/scratch-cv out/applications/scratch-cv
+
+rm -rf "$CVFORGE_HOME" && unset CVFORGE_HOME
 rm -f build/cv-app-scratch-cv.json build/letter-scratch-cv.json build/letter-scratch-verify.json
+rm -f out/letters/scratch-verify.pdf out/letters/scratch-cv.pdf
+
+# A home that is set but missing refuses, rather than falling back to the repo
+CVFORGE_HOME=/nonexistent uv run cvforge check   # "error: $CVFORGE_HOME sets the home to ..."
 
 # Nothing private is tracked
-git status --short --untracked-files=all  # no dossier.yaml, posting/, attachments/, assets/private/
-git check-ignore -v data/private.yaml assets/private/signature.png
+git status --short --untracked-files=all  # no dossier.yaml, posting/, attachments/, private files
+git check-ignore -v data/private.yaml assets/private/signature.png cvforge.local.toml
 ```
+
+To exercise a signature or a document, write a fake `private.yaml`, a
+`private/signature.png` and a `private/documents/<x>.pdf` into the scratch home
+first - never into the real one.
 
 If a change touches the leak scanner, the letter's needle count printed by
 `export` (`scanned N text artifact(s) for M private value(s)`) is the number

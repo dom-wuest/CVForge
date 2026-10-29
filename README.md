@@ -67,6 +67,8 @@ Everything goes through one CLI. In VS Code the same commands are under
 | `uv run cvforge new <slug> --lang de` | Scaffold a new application (`--cv` adds a tailored CV copy) |
 | `uv run cvforge letter <slug>` | Build just that cover letter → `out/letters/<slug>.pdf` |
 | `uv run cvforge apply <slug>` | Build the send-ready folder: letter, CV, attachments |
+| `uv run cvforge list [--match 3d cuda]` | Every application, newest first; `--match` finds ones like a new posting |
+| `uv run cvforge home [set <dir>]` | Where private data and applications live — see [Your home](#your-home) |
 | `uv run cvforge dev --lang en` | Live-preview loop for the CV — see [Previewing](#previewing-while-you-write) |
 | `uv run cvforge dev --letter <slug>` | Live-preview loop for a letter |
 | `uv run cvforge export --to <site>` | Publish the public CV to the website repo |
@@ -78,13 +80,17 @@ Everything goes through one CLI. In VS Code the same commands are under
 | You want to change | Edit | Tracked? |
 |---|---|---|
 | CV content — experience, education, skills, projects | `data/cv-en.yaml`, `data/cv-de.yaml` | yes |
-| Phone number, street address, signature, which certificates exist | `data/private.yaml` | **no** |
-| A cover letter for one application | `applications/<slug>/letter.yaml` | **no** |
-| The CV for that application alone | `applications/<slug>/cv.yaml` (from `new --cv`) | **no** |
-| Notes on that application — the posting, who you spoke to, status | `applications/<slug>/dossier.yaml` | **no** |
-| The scanned certificates themselves | `assets/private/documents/` | **no** |
-| Your signature scan | `assets/private/signature.png` | **no** |
+| Phone number, street address, signature, which certificates exist | `<home>/private.yaml` | **no** |
+| A cover letter for one application | `<home>/applications/<slug>/letter.yaml` | **no** |
+| The CV for that application alone | `<home>/applications/<slug>/cv.yaml` (from `new --cv`) | **no** |
+| Notes on that application — the posting, who you spoke to, status | `<home>/applications/<slug>/dossier.yaml` | **no** |
+| The scanned certificates themselves | `<home>/private/documents/` | **no** |
+| Your signature scan | `<home>/private/signature.png` | **no** |
 | How the PDFs look | `templates/` — see [CLAUDE.md](CLAUDE.md) | yes |
+
+`<home>` is the folder set with `cvforge home set` — see [Your home](#your-home).
+Without one it is the repository itself, with `private.yaml` under `data/` and
+the private files under `assets/private/`, all gitignored.
 
 The two languages are independent files with identical structure. Nothing
 forces them to agree; keep them in step by hand.
@@ -96,11 +102,35 @@ forces them to agree; keep them in step by hand.
 A CV for an application needs a phone number and a street address. A public
 repo and a public website must not have them. So the committed
 `data/cv-<lang>.yaml` holds only placeholders, and the real values live in one
-gitignored file:
+file that is never committed, `private.yaml` in your home:
+
+### Your home
+
+Everything personal — `private.yaml`, the signature, the certificates, every
+application — lives in one folder outside the repository. Put it somewhere
+that syncs, and a second machine has it all and nothing is lost with a disk.
+Once per machine:
 
 ```bash
-cp data/private.example.yaml data/private.yaml
+uv run cvforge home set "C:\Users\<you>\OneDrive\CVForge"   # writes cvforge.local.toml (gitignored)
+uv run cvforge home                                         # what is there, what is missing
 ```
+
+```
+<home>/
+  private.yaml         start from data/private.example.yaml
+  private/             signature.png, documents/
+  applications/<slug>/ letter, CV, dossier, posting - and send/, what apply built
+  schema/              kept current by cvforge, for editor validation
+```
+
+`$CVFORGE_HOME` overrides the setting for one shell. With neither, the
+repository is the home (`data/private.yaml`, `assets/private/`,
+`applications/`, all gitignored) — which is what a fresh clone gets. A home
+that is set but missing, say before OneDrive has synced, stops every command
+with an error rather than quietly writing into the repository.
+
+### private.yaml
 
 ```yaml
 contacts:                # keyed by the contact's `id` in cv-<lang>.yaml
@@ -116,11 +146,11 @@ address:                 # the same address, split up for the letter
   city: "Karlsruhe"
   country: null
 
-signature: "assets/private/signature.png"
+signature: "private/signature.png"   # relative to the home
 
 documents:               # certificates you attach — see Attachments below
   - id: masterzeugnis
-    file: "assets/private/documents/masterzeugnis.pdf"
+    file: "private/documents/masterzeugnis.pdf"
     label: "Masterzeugnis"
 ```
 
@@ -367,16 +397,17 @@ uv run cvforge new 2026-09-acme-rendering-engineer --lang de
 ```
 
 ```
-applications/2026-09-acme-rendering-engineer/
+<home>/applications/2026-09-acme-rendering-engineer/
   letter.yaml     the letter itself
   cv.yaml         a tailored CV - only with `new --cv`
   dossier.yaml    the posting, the people
   posting/        the archived posting
   attachments/    one-off files for this job
+  send/           what `apply` built
 ```
 
-All of it is gitignored; only `applications/_template/` is tracked. Date-prefix
-the slug and the directory sorts itself chronologically.
+None of it is in the repository; only `applications/_template/` is tracked.
+Date-prefix the slug and the directory sorts itself chronologically.
 
 With a [brief](.claude/skills/new-application/brief-format.md) from the
 letter-writing chat, Claude Code does all of the below in one step:
@@ -401,7 +432,7 @@ uv run cvforge apply  2026-09-acme-rendering-engineer  # the folder to send
 way an upload form expects:
 
 ```
-out/applications/2026-09-acme-rendering-engineer/
+<home>/applications/2026-09-acme-rendering-engineer/send/
   01_Dominik_Wuest_Anschreiben.pdf
   02_Dominik_Wuest_Lebenslauf.pdf
   03_Dominik_Wuest_Masterzeugnis.pdf
@@ -412,6 +443,10 @@ out/applications/2026-09-acme-rendering-engineer/
 documents are the same vintage, and the folder is emptied first so a dropped
 attachment cannot linger. If an attachment file is missing, `apply` refuses and
 names it rather than produce an incomplete application.
+
+Once the dossier records the application as sent (`applied:` set, or a status
+past `draft`), `apply` refuses to touch `send/` again: from then on it holds
+what the employer actually received. `apply --force` rebuilds it anyway.
 
 `apply` ends with one line to read before sending:
 
@@ -497,8 +532,8 @@ Nothing under `applications/` is committed except the `_template/` scaffold. A
 recruiter's name and phone are someone else's personal data, an archived
 posting is someone else's copyrighted text, and a letter and tailored CV are
 drafts for one employer - none of it belongs in a repository whose CV data
-also feeds a public website. Back the directory up like any other local
-documents. Nothing renders from the dossier — it exists so that three weeks
+also feeds a public website. That is what the home is for: it is backed up
+and synced like any other documents folder. Nothing renders from the dossier — it exists so that three weeks
 later, when the posting is gone and you are in the interview, the facts are
 still somewhere.
 
@@ -508,8 +543,8 @@ selectable and you get the whole posting, not one viewport of it.
 ### Your signature
 
 ```yaml
-# data/private.yaml
-signature: "assets/private/signature.png"
+# <home>/private.yaml
+signature: "private/signature.png"
 ```
 
 A transparent PNG around 800px wide, scanned from a black pen, works best. If
@@ -521,19 +556,19 @@ signature carries no extra legal weight on an emailed PDF anyway.
 
 Certificates, transcripts and references are the same files for every
 application, so they are declared once in `private.yaml` and picked per letter
-by id. Put the files in `assets/private/documents/`.
+by id. Put the files in `<home>/private/documents/`.
 
 ```yaml
-# data/private.yaml
+# <home>/private.yaml
 documents:
   # One file, one name — issued in German, sent as-is to everyone.
   - id: masterzeugnis
-    file: "assets/private/documents/scan_2023_04_11_0003.pdf"
+    file: "private/documents/scan_2023_04_11_0003.pdf"
     label: "Masterzeugnis"
 
   # One file, two names — a bilingual certificate; only the Anlagen line changes.
   - id: bachelorzeugnis
-    file: "assets/private/documents/bachelorzeugnis.pdf"
+    file: "private/documents/bachelorzeugnis.pdf"
     label:
       de: "Bachelorzeugnis"
       en: "Bachelor's Degree Certificate"
@@ -541,8 +576,8 @@ documents:
   # Two files, two names — issued separately per language.
   - id: transcript-master
     file:
-      de: "assets/private/documents/notenauszug_master_de.pdf"
-      en: "assets/private/documents/transcript_master_en.pdf"
+      de: "private/documents/notenauszug_master_de.pdf"
+      en: "private/documents/transcript_master_en.pdf"
     label:
       de: "Notenauszug (laufendes Masterstudium)"
       en: "Transcript of Records (Master, in progress)"

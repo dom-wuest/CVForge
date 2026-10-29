@@ -25,7 +25,7 @@ before sending.
 **Letter:** N page(s) ✅ / ⚠️ over one page
 **CV:** N page(s), expected M ✅ / ⚠️ overflowed · source `applications/<slug>/cv.yaml` | `data/cv-<lang>.yaml`
 **Attachments:** <labels in order> / none
-**Send folder:** `out/applications/<slug>/` (N files)
+**Send folder:** `<home>/applications/<slug>/send/` (N files)
 
 **CV changes applied:**
 - <entry>: <change>
@@ -42,5 +42,5 @@ before sending.
 
 **Visual check:** <one line each for letter and CV - what was looked at, anything off>
 
-**Safety:** data/ unchanged ✅ · application gitignored ✅ · nothing staged or committed ✅
+**Safety:** data/ unchanged ✅ · application outside git ✅ · nothing staged or committed ✅
 ```

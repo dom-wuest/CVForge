@@ -1,9 +1,10 @@
 """Load -> validate -> merge private -> derive -> write build/cv-<lang>.json.
 
 This is the only module that reads YAML and the only one that knows
-data/private.yaml exists. Both renderers consume the resolved JSON and nothing
-else, which is what keeps a third target (plain-text, JSON-LD, an ATS variant)
-addable without touching the data.
+private.yaml exists (data/private.yaml, or the copy in the home - see
+paths.py). Both renderers consume the resolved JSON and nothing else, which is
+what keeps a third target (plain-text, JSON-LD, an ATS variant) addable without
+touching the data.
 
 Everything a renderer would otherwise have to compute is derived here:
 formatted date ranges, the education meta line, the section labels. Renderers
@@ -109,7 +110,7 @@ def validate(data: dict[str, Any], lang: str, source: Path | None = None) -> Non
 
 
 def merge_private(data: dict[str, Any], profile: str, *, quiet: bool = False) -> list[str]:
-    """Apply data/private.yaml to the contacts, per the resolve rules.
+    """Apply private.yaml to the contacts, per the resolve rules.
 
     `--profile public` ignores the file entirely, even when it exists - that is
     the guarantee the HTML target depends on. `--profile full` merges it when
@@ -135,9 +136,9 @@ def merge_private(data: dict[str, Any], profile: str, *, quiet: bool = False) ->
         placeholders = [c["id"] for c in contacts if c.get("private")]
         if placeholders and not quiet:
             notes.append(
-                f"no {paths.PRIVATE.relative_to(paths.ROOT).as_posix()}; using placeholders for: "
+                f"no {paths.display(paths.PRIVATE)}; using placeholders for: "
                 + ", ".join(placeholders)
-                + "  (copy data/private.example.yaml to start)"
+                + "  (copy data/private.example.yaml there to start)"
             )
         return notes
 

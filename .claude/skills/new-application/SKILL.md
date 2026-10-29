@@ -7,7 +7,15 @@ allowed-tools: Read, Write, Edit, Glob, Grep, WebSearch, WebFetch, Bash(uv run c
 
 # /new-application
 
-Turn a brief into a send-ready folder in `out/applications/<slug>/`, then report.
+Turn a brief into a send-ready folder in `<home>/applications/<slug>/send/`,
+then report.
+
+**Where things are.** Applications and `private.yaml` live in the user's home
+folder, outside the repository. Run `uv run cvforge home` first: it prints the
+home. Below, `applications/<slug>/` means `<home>/applications/<slug>/` and
+`private.yaml` means `<home>/private.yaml` (without a home: the repository's
+`applications/` and `data/private.yaml`). If `cvforge home` reports an error,
+stop and show it to the user.
 
 ## Inputs
 
@@ -39,18 +47,19 @@ Read before starting, in this directory:
 
 ## Hard rules
 
-- **Never edit anything in `data/`.** Not `data/cv-*.yaml` (it feeds the public
-  website), not `data/private.yaml`. CV changes go into
+- **Never edit anything in `data/`** - `data/cv-*.yaml` feeds the public
+  website - **and never edit `private.yaml`.** CV changes go into
   `applications/<slug>/cv.yaml` only.
-- **`data/private.yaml`: read ids and labels under `documents:` only.** Never
+- **`private.yaml`: read ids and labels under `documents:` only.** Never
   print, quote or summarise any other value from it.
-- **Never touch `assets/private/`.** A hook blocks it anyway.
+- **Never touch the private folder** (`<home>/private/`, or `assets/private/`).
+  A hook blocks it anyway.
 - **Never change the letter's wording.** The text was written and approved in the
   letter chat. Copy it verbatim - only whitespace and YAML quoting may differ.
   Typos you notice go into the report, not into the file.
 - **Never overwrite an existing application.** If `applications/<slug>/` exists,
   stop and ask.
-- **Never commit, stage or push.** Applications are gitignored by design.
+- **Never commit, stage or push.** Applications are outside git by design.
 - Apply only CV changes the brief marks as **confirmed**. Everything optional or
   unconfirmed goes into the report as "not applied".
 - Do not invent facts the brief does not give: no made-up reference numbers,
@@ -137,7 +146,7 @@ Read before starting, in this directory:
     `(expected N)`), do not shrink it yourself. Report it, naming which of the
     applied CV changes added length.
 
-11. **Look at the PDFs**: Read `out/applications/<slug>/01_*.pdf` and
+11. **Look at the PDFs**: Read `applications/<slug>/send/01_*.pdf` and
     `02_*.pdf`. Check:
     - Letter: the letterhead is not crowding the address field, the subject is
       on one line, the info block is readable, the signature is present, no
@@ -148,7 +157,9 @@ Read before starting, in this directory:
 
 12. **Safety checks** - all must pass, and all go in the report:
     - `git diff --quiet -- data/` exits 0 (the base CV is untouched).
-    - `git check-ignore -q applications/<slug>/letter.yaml` exits 0.
+    - With a home: `uv run cvforge home` names a folder outside the
+      repository, so the application is not in git at all. Without one:
+      `git check-ignore -q applications/<slug>/letter.yaml` exits 0.
     - `git status --short` lists nothing under `applications/`.
 
 13. **Report** using report-template.md, in the user's language. Lead with the

@@ -31,7 +31,7 @@ by the letter and a CV-changes section. Field names vary; map by meaning.
 
 ### Attachments
 
-Read `data/private.yaml` → `documents:` and look only at each entry's `id` and
+Read `private.yaml` (in the home) → `documents:` and look only at each entry's `id` and
 `label`. A label may be a string or a `{de:, en:}` mapping. Match the brief's
 document names to labels by meaning ("Masterzeugnis" ↔ `masterzeugnis`;
 "Arbeitszeugnis Fraunhofer" ↔ `az-fraunhofer`). List the ids in the brief's
@@ -53,14 +53,24 @@ and is listed as `{file: "attachments/<name>", label: "<label>"}`.
 
 | Brief | Key |
 |---|---|
+| Kurzbeschreibung, else the Stelle section condensed | `summary` - one or two sentences: domain, problem, stack. What makes this job *this* job; it is what the next similar posting is matched against. |
+| Schlagworte, else derived from the posting | `keywords` - 5–10, lowercase English, singular: `[3d reconstruction, photogrammetry, c++, geospatial]`. Reuse words earlier dossiers use (`uv run cvforge list` shows them). |
+| Unternehmen section | `company.about` (2–3 sentences). `company.name` only if the usual name differs from the legal entity in `recipient.company` ("Esri R&D Center Stuttgart"). |
+| Arbeitsort / Standort | `role.location`, `role.work_model` (`onsite`/`hybrid`/`remote`, else `null`), `role.employment` (`full-time`/`part-time`/`internship`/`working-student`/`thesis`) |
 | Anzeige URL | `posting.url` |
-| posting file, if copied | `posting.archive` (`applications/<slug>/posting/<file>`), `posting.fetched` = today |
+| posting file, if copied | `posting.archive` - relative to the application: `posting/<file>`. `posting.fetched` = today |
 | Bewerbungsfrist / deadline | `posting.deadline` (`"YYYY-MM-DD"`) |
-| Stelle section (what the role is) | `posting.notes` - a short paraphrase, not the posting text |
+| Stelle section (requirements) | `posting.notes` - a short paraphrase of what they ask for, not the posting text |
+| Basis / "Aufbau wie <company>" | `approach.based_on` - the slug of that earlier application |
+| the letter's hook and lead | `approach.angle` - one or two sentences in your words: what the letter opens with, which experience it puts first |
+| CV-Änderungen (confirmed) | `approach.cv` - one short item per applied change ("iVS3D first in projects", "theses removed"). Not the text itself; that is in cv.yaml. |
+| Lücken | `approach.gaps` - one item each, with how the letter handles it if it does |
+| Bewerbung | `submission.method` (`portal`/`email`/`post`), `submission.url` if it differs from `posting.url` |
+| Portalfragen | `submission.questions: [{question, answer}]` - verbatim, `answer: null` where the user fills it in |
 | Ansprechpartner with contact details | `contacts: [{name, role, email, phone, notes}]`. None → `contacts: []`. |
-| - | `status: draft` |
-| - | `timeline: [{date: "<today>", event: "Built with cvforge from brief.md"}]` |
-| Unternehmen, Standort, Bewerbung (portal questions), Status | `notes` - a `>` block. Portal questions verbatim as a list - they need answers at upload time. |
+| - | `status: draft`, `applied: null` - the user sets both when it goes out |
+| - | `timeline`: keep the "Created" entry `new` wrote, add `{date: "<today>", event: "Built with cvforge from brief.md"}` |
+| Hinweise, anything else | `notes` - a `>` block |
 | a looked-up address | `notes` - one line: "Address looked up <date>: <address> - source <URL> (<how current>)". |
 
 ## cv.yaml (tailored copy)

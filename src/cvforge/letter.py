@@ -5,7 +5,7 @@ renderer reads the resolved JSON and nothing else.
 
 The one structural difference is where the sender comes from. A letter names
 nobody but the recipient; your own name, tagline, contacts, address and
-signature are read from the CV and from data/private.yaml, so a letterhead
+signature are read from the CV and from private.yaml, so a letterhead
 cannot drift out of step with the CV it is stapled to. That is why this module
 calls resolve.resolve() rather than reimplementing it.
 
@@ -16,17 +16,21 @@ and is never exported. There is deliberately no --profile flag for it.
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
 from . import dates, i18n, paths, resolve
 from .resolve import ResolveError
 
-# Keys of the structured address in data/private.yaml, in the order a German
+# How messages name private.yaml: data/private.yaml, or the copy in the home.
+PRIVATE_NAME = paths.display(paths.PRIVATE)
+
+# Keys of the structured address in private.yaml, in the order a German
 # letter prints them. `country` is last and usually absent.
 ADDRESS_KEYS = ("street", "postal_code", "city", "country")
 
-# Shown when data/private.yaml is missing, so the letter still builds on a
+# Shown when private.yaml is missing, so the letter still builds on a
 # fresh clone rather than failing - the same promise the CV makes.
 PLACEHOLDER_ADDRESS = {
     "street": "Musterstraße 1",
@@ -42,7 +46,7 @@ PLACEHOLDER_ADDRESS = {
 
 
 def private_letter() -> tuple[dict[str, Any], list[str]]:
-    """The sender's postal address and signature, from data/private.yaml.
+    """The sender's postal address and signature, from private.yaml.
 
     Returns (values, notes). Never raises for a missing file: a fresh clone
     builds a letter with a placeholder address and a typed name, and says so.
@@ -51,8 +55,8 @@ def private_letter() -> tuple[dict[str, Any], list[str]]:
 
     if not paths.PRIVATE.is_file():
         notes.append(
-            "no data/private.yaml; using a placeholder address and no signature "
-            "(copy data/private.example.yaml to start)"
+            f"no {PRIVATE_NAME}; using a placeholder address and no signature "
+            "(copy data/private.example.yaml there to start)"
         )
         return {
             "address": dict(PLACEHOLDER_ADDRESS),
@@ -64,10 +68,10 @@ def private_letter() -> tuple[dict[str, Any], list[str]]:
 
     address = private.get("address") or {}
     if not isinstance(address, dict):
-        raise ResolveError("data/private.yaml: `address` must be a mapping")
+        raise ResolveError(f"{PRIVATE_NAME}: `address` must be a mapping")
     unknown = sorted(set(address) - set(ADDRESS_KEYS))
     if unknown:
-        notes.append(f"data/private.yaml: ignoring unknown address key(s): {', '.join(unknown)}")
+        notes.append(f"{PRIVATE_NAME}: ignoring unknown address key(s): {', '.join(unknown)}")
     resolved_address = {key: address.get(key) or None for key in ADDRESS_KEYS}
 
     missing = [k for k in ("street", "postal_code", "city") if not resolved_address[k]]
@@ -75,21 +79,21 @@ def private_letter() -> tuple[dict[str, Any], list[str]]:
         for key in missing:
             resolved_address[key] = PLACEHOLDER_ADDRESS[key]
         notes.append(
-            "data/private.yaml has no `address` block; using placeholders for: "
-            + ", ".join(missing)
+            f"{PRIVATE_NAME} has no `address` block; using placeholders for: " + ", ".join(missing)
         )
 
     signature = private.get("signature") or None
     if signature:
         # A missing signature file is a hard Typst error, not a blank space, so
         # it is dropped here with a note rather than blowing up the compile.
-        if (paths.ROOT / signature).is_file():
+        if paths.private_path(signature).is_file():
             notes.append(f"signature: {signature}")
+            signature = _typst_visible(paths.private_path(signature))
         else:
             notes.append(f"signature file not found, using the typed name only: {signature}")
             signature = None
     else:
-        notes.append("data/private.yaml declares no `signature`; using the typed name only")
+        notes.append(f"{PRIVATE_NAME} declares no `signature`; using the typed name only")
 
     documents, doc_notes = _document_pool(private.get("documents"))
     notes += doc_notes
@@ -99,6 +103,24 @@ def private_letter() -> tuple[dict[str, Any], list[str]]:
         "signature": signature,
         "documents": documents,
     }, notes
+
+
+def _typst_visible(path: Path) -> str:
+    """The signature as a root-relative path Typst is allowed to read.
+
+    Typst reads nothing outside --root, and a home in OneDrive is outside it.
+    So a signature there is copied into build/ - gitignored, and already the
+    place resolved private values live - and the letter points at the copy.
+    One in the repository is used where it is.
+    """
+    try:
+        return path.relative_to(paths.ROOT).as_posix()
+    except ValueError:
+        pass
+    target = paths.BUILD / "private" / f"signature{path.suffix.lower()}"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(path, target)
+    return target.relative_to(paths.ROOT).as_posix()
 
 
 def _declared_files(value: Any) -> list[str]:
@@ -125,11 +147,11 @@ def _document_pool(declared: Any) -> tuple[dict[str, dict[str, Any]], list[str]]
     if not declared:
         return {}, notes
     if not isinstance(declared, list):
-        raise ResolveError("data/private.yaml: `documents` must be a list")
+        raise ResolveError(f"{PRIVATE_NAME}: `documents` must be a list")
 
     pool: dict[str, dict[str, Any]] = {}
     for i, entry in enumerate(declared):
-        where = f"data/private.yaml: documents[{i}]"
+        where = f"{PRIVATE_NAME}: documents[{i}]"
         if not isinstance(entry, dict):
             raise ResolveError(f"{where} must be a mapping with `id`, `file` and `label`")
         for key in ("id", "file", "label"):
@@ -143,7 +165,7 @@ def _document_pool(declared: Any) -> tuple[dict[str, dict[str, Any]], list[str]]
         f"{did} ({rel})"
         for did, d in pool.items()
         for rel in _declared_files(d["file"])
-        if not (paths.ROOT / rel).is_file()
+        if not paths.private_path(rel).is_file()
     )
     if missing:
         # Not fatal here: the letter itself only needs the labels, and a draft
@@ -262,18 +284,17 @@ def _attachments(data: dict[str, Any], slug: str, pool: dict, lang: str) -> list
                 if pool:
                     known = ", ".join(sorted(pool)) or "none"
                     raise ResolveError(
-                        f"at {where}: no document {entry!r} in data/private.yaml. "
-                        f"Declared: {known}."
+                        f"at {where}: no document {entry!r} in {PRIVATE_NAME}. Declared: {known}."
                     )
                 # No pool at all (no private.yaml, or no `documents:` block).
                 # Fall back to the id as the label so the letter still renders,
                 # exactly as a missing address falls back to a placeholder.
                 out.append({"label": entry, "file": None, "lang_fallback": None})
                 continue
-            origin = f"data/private.yaml: {entry}"
+            origin = f"{PRIVATE_NAME}: {entry}"
             rel, exact = _per_lang(declared["file"], lang, origin, "file")
             label, _ = _per_lang(declared["label"], lang, origin, "label")
-            path = paths.ROOT / rel
+            path = paths.private_path(rel)
             out.append(
                 {
                     "label": label,
