@@ -26,6 +26,7 @@ website — by construction, not by discipline.
 - [Private data](#private-data)
 - [The CV YAML format](#the-cv-yaml-format)
 - [Applications and cover letters](#applications-and-cover-letters)
+- [With Claude Desktop](#with-claude-desktop)
 - [Previewing while you write](#previewing-while-you-write)
 - [Publishing to the website](#publishing-to-the-website)
 - [Troubleshooting](#troubleshooting)
@@ -64,7 +65,7 @@ Everything goes through one CLI. In VS Code the same commands are under
 | `uv run cvforge pdf --lang en` | Build `out/cv-en.pdf` (`--lang de` for German) |
 | `uv run cvforge all` | The CV for every language |
 | `uv run cvforge check` | Validate all data files, report content warnings |
-| `uv run cvforge new <slug> --lang de` | Scaffold a new application (`--cv` adds a tailored CV copy) |
+| `uv run cvforge new <slug> --lang de` | Scaffold a new application (`--cv` adds a tailored CV copy, `--from <slug>` starts from an earlier one) |
 | `uv run cvforge letter <slug>` | Build just that cover letter → `out/letters/<slug>.pdf` |
 | `uv run cvforge apply <slug>` | Build the send-ready folder: letter, CV, attachments |
 | `uv run cvforge list [--match 3d cuda]` | Every application, newest first; `--match` finds ones like a new posting |
@@ -72,6 +73,7 @@ Everything goes through one CLI. In VS Code the same commands are under
 | `uv run cvforge dev --lang en` | Live-preview loop for the CV — see [Previewing](#previewing-while-you-write) |
 | `uv run cvforge dev --letter <slug>` | Live-preview loop for a letter |
 | `uv run cvforge export --to <site>` | Publish the public CV to the website repo |
+| `uv run cvforge mcp-config` | The Claude Desktop entry for the MCP server — see [With Claude Desktop](#with-claude-desktop) |
 
 ---
 
@@ -604,6 +606,66 @@ contain. Set `enclosures:` only to reword it.
 Copying preserves digital signatures on the PDFs: the copy is byte-identical,
 and a signature covers the file's content, not its name. Merging or
 re-compressing would break them; nothing here does that.
+
+---
+
+## With Claude Desktop
+
+A local MCP server lets Claude Desktop read your past applications, draft a
+new one with you and build it - in the same chat where you write the letter.
+No brief to hand over, no second session.
+
+### Setup, once per machine
+
+```bash
+uv sync --extra mcp
+uv run cvforge mcp-config      # prints the entry for this machine
+```
+
+Paste the printed entry into Claude Desktop's config (Settings → Developer →
+Edit Config) and restart Claude Desktop. In its tool settings, set the
+read-only tools to *Always allow* and keep `apply`, `mark_sent` and `log_event`
+on *Ask* - those prompts are your confirmations. The laptop runs the same two
+commands after `git pull` and `cvforge home set`.
+
+### What leaves your machine
+
+The server is local: no port, no network access of its own. But Claude runs at
+Anthropic, so whatever a tool *returns* goes there - as it already does when
+you paste a posting into a chat.
+
+| Goes to Claude | Never does |
+|---|---|
+| Postings, letter.yaml, cv.yaml (placeholders), dossiers, page counts, layout numbers, warnings | Phone, address, private e-mail - anything in `private.yaml` - the signature, the certificates, the built PDFs |
+
+Every result is scanned for every value in `private.yaml` before it is
+returned; a hit is withheld. No page images are sent - Claude fits the layout
+from numbers ("3.5 mm left", "overflows 12 mm"), and you look at the PDFs.
+
+### A new application
+
+🟦 you start · 🟩 you do · 🟧 you confirm
+
+1. 🟩 Print the posting to PDF into `<home>/inbox/` (a chat attachment cannot
+   reach a local server).
+2. 🟦 In the Claude Desktop project: *"New posting in the inbox."* Claude reads
+   it, finds the most similar recent applications and proposes angle, CV
+   changes and the letter.
+3. 🟩 Work on the text together, as before.
+4. 🟧 *"Final."* Claude creates the application, fills letter, CV and dossier,
+   builds a draft and fits it to one page with layout settings. Cuts it only
+   proposes - 🟧 you choose.
+5. 🟧 Approve `apply`. 🟩 Open `<home>/applications/<slug>/send/` and check
+   the real PDFs.
+6. 🟩 Submit. 🟦 *"Submitted today."* → 🟧 approve `mark_sent`; `send/` is
+   locked from then on.
+7. 🟦 Later: *"Interview invitation from X for the 14th"*, *"Rejection from
+   Y"* → 🟧 approve `log_event`.
+
+Any time, without prompts: *"Which applications are open?"*, *"What did I lead
+with for rendering jobs?"*
+
+The `/new-application` skill for Claude Code still works the old way.
 
 ---
 

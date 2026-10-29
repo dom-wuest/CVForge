@@ -22,6 +22,7 @@ signature, certificates) is kept out of every tracked file by construction.
 - [Cover letters](#cover-letters)
 - [Styling the CV](#styling-the-cv)
 - [Publishing to the website](#publishing-to-the-website)
+- [The MCP server](#the-mcp-server)
 - [Troubleshooting](#troubleshooting)
 - [Verification recipe](#verification-recipe)
 
@@ -121,12 +122,18 @@ src/cvforge/
   check.py             `check` (content warnings) and `check-clean` (leak scan).
   dates.py             "YYYY"/"YYYY-MM" for the CV; "YYYY-MM-DD" for the letter.
   i18n.py              LABELS (CV, shipped to the website) and LETTER_LABELS.
-  cli.py               argparse, typst invocation, the commands.
+  service.py           What the commands do, returning results: typst, apply, new,
+                       draft builds, the layout report, list. CLI and MCP both call it.
+  cli.py               argparse and printing; thin over service.py.
+  posting.py           Text of an archived posting (pypdf).
+  mcp_server.py        The local MCP server for Claude Desktop (`cvforge-mcp`).
+  mcp_selftest.py      Its end-to-end test against a throwaway home.
 templates/pdf/       The CV renderer.
   theme.typ            Every design token. No magic numbers anywhere else.
   template.typ         Page geometry and set/show rules.
   icons.typ            Font Awesome behind one function; FALLBACK flag.
-  components/          header, contact row, chips, bars, timeline, sidebar.
+  components/          header, contact row, chips, bars, timeline, sidebar, and
+                       marker.typ (invisible layout metadata for the report).
   sections/            One module per CV section.
   main.typ             Assembly only.
 templates/letter/    The letter renderer. Imports ../pdf/ for theme, icons and
@@ -172,7 +179,7 @@ else is a bug and should traceback.
 **Output.** Commands print `  note: …` for informational lines and
 `  wrote <repo-relative path>  (…)` for artifacts. `paths.display()` makes a
 path repo-relative where possible and absolute otherwise (`export` writes
-outside the repo). `_compile` appends the page count as `(N pages)`.
+outside the repo). `service.compile_typst` appends the page count as `(N pages)`.
 
 **Typst.** Every `.typ` file opens with a `// ─── name.typ ───` banner
 explaining *why* it exists. Formatted by typstyle at 100 columns (Tinymist does
@@ -356,7 +363,7 @@ frame is the page corner.
 make room for itself. Name at 18pt + tagline + one contact row fits; a wrapped
 two-line row does not. `sender_contacts` in the letter is the knob; the
 scaffold omits `location` because the return line already carries the address.
-`_compile_letter` warns if the page count is not 1.
+`service.compile_letter` warns if the page count is not 1.
 
 **`meta.layout: compact`** is the opt-out, for letters that only travel as a
 PDF. Letterhead, address band and body flow one after another, separated by
@@ -420,14 +427,14 @@ clearing the bundle so a failed run leaves the last good folder intact.
 (`_check_documents`), and id/edition problems once per letter
 (`_check_attachments`).
 
-`apply` names files `NN_<Name>_<Label>.ext` via `_send_name` and
-`_slugify_name` (umlauts transliterated, apostrophes dropped). Letter = 01,
+`apply` names files `NN_<Name>_<Label>.ext` via `service.send_name` and
+`service.slugify_name` (umlauts transliterated, apostrophes dropped). Letter = 01,
 CV = 02, attachments from 03 in listed order. The folder is emptied first so a
 dropped attachment cannot linger. Copies are `shutil.copyfile`, byte-exact,
 which is what preserves digital signatures on certificates — merging or
 re-saving would break them.
 
-**Once sent, `send/` is the record.** `apply` refuses (`_sent_on`) when the
+**Once sent, `send/` is the record.** `apply` refuses (`service.sent_on`) when the
 dossier has an `applied` date or a status in `check.SENT`, because emptying and
 rebuilding the folder would replace what the employer received with what the
 sources produce today - a later base CV, a different build date. `--force`
@@ -469,7 +476,7 @@ happen in `data/`.
 - `check` validates an override and runs the photo/image/id checks on it, but
   not the tag check - that would only repeat the base CV's warnings.
 
-`apply` warns when the CV has more pages than `_expected_cv_pages` (1, or 2
+`apply` warns when the CV has more pages than `service.expected_cv_pages` (1, or 2
 with `projects_layout: page`), and ends with a fixed-format `summary:` line
 that the `/new-application` skill parses. Change that format and the skill
 together.
@@ -482,7 +489,9 @@ letter) and warns about what makes it useless later: text from the old
 scaffold (`TEMPLATE_REMNANTS` - "Anna Beispiel" and an invented applied date
 once survived unedited and read as facts), no `summary`/`keywords`, a sent
 `status` with no `applied` date or the reverse, a `posting.archive` that does
-not exist, an `approach.based_on` naming no application.
+not exist or has no `posting.fetched`, files in `posting/` that
+`posting.archive` does not name (a posting dropped in by hand is invisible to
+whoever reads only the dossier), an `approach.based_on` naming no application.
 
 The scaffold therefore ships every value empty; `new` adds only a dated
 "Created" timeline entry. `posting.archive` is relative to the application
@@ -494,7 +503,7 @@ exception is `role.title`, for an application that has no `letter.yaml` (sent
 before CVForge, only the PDFs archived); `list` falls back to it.
 
 `cvforge list` reads dossier and letter, sorts newest first by
-`_application_date` (`applied`, else the first timeline date, else the slug's
+`service.application_date` (`applied`, else the first timeline date, else the slug's
 `YYYY-MM`), and with `--match` keeps applications whose keywords or summary
 contain any of the words - not the job title, which an unwritten letter still
 has from the scaffold. It filters but does not re-rank: the CV
@@ -642,6 +651,67 @@ Web presentation is the Portfolio repo's (`layouts/partials/cv.html`,
 
 ---
 
+## The MCP server
+
+`cvforge-mcp` (`src/cvforge/mcp_server.py`, extra `mcp`) lets Claude Desktop
+read past applications, draft new ones and build them. Claude Desktop starts it
+over stdio; it opens no port and makes no request. `cvforge mcp-config` prints
+the config entry for the machine it runs on.
+
+**Privacy is drawn at the tool result.** Claude runs remotely, so whatever a
+tool returns is conversation content. Three independent layers:
+
+1. **By construction.** Only resolve/letter read `private.yaml`. No tool returns
+   contents of `build/`, `send/` or the private folder; builds return numbers,
+   file names, warnings. No images - the user decided against even masked
+   previews, which is why the layout report exists.
+2. **The output filter.** `tool()` serializes every result and every error
+   message and scans it with `check._private_needles()` - recomputed per call.
+   A hit raises "Withheld" naming the trail (`contacts.phone.value`), never the
+   value. Exceptions of any kind pass through the same filter.
+3. **No dangerous verbs.** No delete, no `force`, no export; slugs must match
+   `SLUG_RE` and resolve directly under `APPLICATIONS`; inbox files are bare
+   names. Writes: `letter.yaml`, `cv.yaml`, `dossier.yaml`, `posting/`.
+
+**Tools** - read-only: `status`, `list_applications`, `get_application`,
+`get_base_cv`, `get_reference`, `list_documents`, `read_inbox`. Drafting:
+`create_application`, `import_posting`, `edit_file`, `update_dossier`,
+`build_draft`. Decisive (`destructive_hint`, so Desktop asks): `apply`,
+`mark_sent`, `log_event`.
+
+- `get_application` returns every requested part: one that does not exist is
+  `null`, with the reason under `unavailable` - a silently missing key read as
+  a bug in testing. It resolves `title`/`company` with their source
+  (`service.application_title`), because the title lives in letter.yaml and a
+  reader of the dossier alone wonders where `list_applications` got it.
+- A `brief.md` is the frozen hand-over an application was built from and is
+  never updated; `INSTRUCTIONS` tell Claude to trust the dossier over it.
+- `edit_file` is exact-unique string replacement, then a real
+  `letter.resolve_letter` (plus CV validation); any error restores the file.
+  Refused once sent, like `apply`.
+- `update_dossier` deep-merges with ruamel.yaml so comments survive; it refuses
+  `status`, `applied`, `timeline`, which only `mark_sent`/`log_event` set -
+  recording a submission is always its own, approved call.
+- `build_draft` writes `out/letters/<slug>.pdf` and `out/drafts/<slug>-cv.pdf`,
+  never `send/`, and returns the **layout report**: `templates/pdf/components/
+  marker.typ` leaves `place`d metadata (zero size - renders are byte-identical
+  with and without it) where each flow ended and how tall the letterhead is;
+  `service._markers` reads it with `typst eval 'query(...)'` and reports
+  `room_mm` or `overflow_mm`.
+- The server's `INSTRUCTIONS` carry the workflow rules the skill used to:
+  never reword approved text, layout knobs only, `apply`/`mark_sent` only on the
+  user's word, look up and cite a missing address.
+
+**stdout is the protocol.** mcp 2.x diverts fd 1 to stderr while serving, and
+`service._run` captures typst's output; the `tool()` wrapper additionally
+redirects `sys.stdout`/`stderr` per call and returns note/warning lines as
+`log`. Never print from server code outside a tool call.
+
+Postings reach the server through `<home>/inbox/` (a chat attachment never
+reaches a local process); `import_posting` moves one into `posting/`.
+
+---
+
 ## Troubleshooting
 
 **Icons are blank, or `unknown font family: font awesome 7 free solid`**
@@ -657,7 +727,7 @@ Typst fell back silently because it could not find Inter — a missing
 `--font-path`.
 
 **`cvforge pdf` prints no page count**
-`_page_count` byte-scans for `/Type\s*/Pages` then `/Count`. Typst 0.14 writes
+`service.page_count` byte-scans for `/Type\s*/Pages` then `/Count`. Typst 0.14 writes
 `/Type /Pages` with a space where 0.13 did not; if the pattern ever stops
 matching it returns `None` and the count is silently omitted, which is how a
 regression to two pages hides.
@@ -705,6 +775,9 @@ git diff --quiet -- data/ && echo "base CV untouched"
 
 rm -rf "$CVFORGE_HOME" && unset CVFORGE_HOME
 rm -f build/cv-app-scratch-cv.json build/letter-scratch-cv.json build/letter-scratch-verify.json
+
+# The MCP server, end to end over stdio, in its own throwaway home
+uv run --extra mcp python -m cvforge.mcp_selftest   # "N/N passed", incl. the leak test
 rm -f out/letters/scratch-verify.pdf out/letters/scratch-cv.pdf
 
 # A home that is set but missing refuses, rather than falling back to the repo

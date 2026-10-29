@@ -231,6 +231,21 @@ def letter_pdf(slug: str) -> Path:
     return OUT / "letters" / f"{slug}.pdf"
 
 
+def draft_cv_pdf(slug: str) -> Path:
+    """The CV a draft build produces, beside the draft letter and for the same
+    reason: out/, not send/, so looking at a draft can never touch what was sent."""
+    return OUT / "drafts" / f"{slug}-cv.pdf"
+
+
+def inbox() -> Path:
+    """Where a posting PDF waits before it has an application.
+
+    The hand-over to the MCP server: a file attached to a chat never reaches a
+    local process, so the posting is printed to PDF into this folder instead.
+    """
+    return (HOME or ROOT) / "inbox"
+
+
 def bundle(slug: str) -> Path:
     """The send-ready folder, next to the sources it was built from.
 

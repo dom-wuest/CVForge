@@ -15,6 +15,8 @@
 // CV instead (`cvforge apply` passes it); without it, the base CV for `lang`.
 
 #import "template.typ": cv-template
+#import "theme.typ": theme
+#import "components/marker.typ": flow-marker
 #import "components/header.typ": header-from
 #import "components/sidebar.typ": two-column
 #import "sections/profile.typ": profile-section
@@ -59,7 +61,18 @@
   }
 }
 
-#two-column(render(MAIN-SECTIONS), render(ASIDE-SECTIONS))
+// The markers record where each column ended, for `cvforge`'s layout report.
+// They print nothing.
+#two-column(
+  {
+    render(MAIN-SECTIONS)
+    flow-marker("cvforge-main-end", theme.page.margin)
+  },
+  {
+    render(ASIDE-SECTIONS)
+    flow-marker("cvforge-aside-end", theme.page.margin)
+  },
+)
 
 // Projects get a page of their own when the data asks for it: full width, no
 // sidebar, and room for a screenshot beside each entry. It stays part of this
@@ -70,4 +83,5 @@
 #if cv.meta.projects_layout == "page" and cv.at("projects", default: ()).len() > 0 {
   pagebreak()
   projects-page(cv.projects, labels)
+  flow-marker("cvforge-projects-end", theme.page.margin)
 }

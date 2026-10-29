@@ -11,6 +11,8 @@ before that, not after.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import re
 from pathlib import Path
 from typing import Any
@@ -136,64 +138,79 @@ def _check_letters() -> list[str]:
     sending: an unedited template, a subject that will wrap, a contact row too
     long for the space above the address field.
     """
+    out: list[str] = []
+    for slug in _slugs():
+        out += _check_letter(slug)
+    return out
+
+
+def _slugs() -> list[str]:
+    """Every application directory, sorted; _template is a scaffold, not one."""
     if not paths.APPLICATIONS.is_dir():
         return []
+    return sorted(
+        p.name for p in paths.APPLICATIONS.iterdir() if p.is_dir() and not p.name.startswith("_")
+    )
 
+
+def check_application(slug: str) -> list[str]:
+    """`check`'s warnings for one application only, without the progress lines.
+
+    What a build of one application reports. Validation errors still raise.
+    """
+    with contextlib.redirect_stdout(io.StringIO()):
+        return _check_letter(slug) + _check_dossier(slug, set(_slugs()))
+
+
+def _check_letter(slug: str) -> list[str]:
     out: list[str] = []
-    for directory in sorted(p for p in paths.APPLICATIONS.iterdir() if p.is_dir()):
-        slug = directory.name
-        if slug.startswith("_"):  # _template is a scaffold, not an application
-            continue
-        src = paths.letter_source(slug)
-        if not src.is_file():
-            out.append(f"[{slug}] no letter.yaml in {paths.display(directory)}")
-            continue
+    src = paths.letter_source(slug)
+    if not src.is_file():
+        return [f"[{slug}] no letter.yaml in {paths.display(paths.application(slug))}"]
 
-        print(f"checking {paths.display(src)}")
-        data = resolve.load_yaml(src)
-        letter.validate_letter(data, slug)  # raises ResolveError, caught by the CLI
+    print(f"checking {paths.display(src)}")
+    data = resolve.load_yaml(src)
+    letter.validate_letter(data, slug)  # raises ResolveError, caught by the CLI
+    print("  schema ok")
+
+    lang = data["meta"]["lang"]
+    cv_src = paths.cv_source(lang, slug)
+    if not cv_src.is_file():
+        return [f"[{slug}] declares lang={lang!r} but {paths.display(cv_src)} is missing"]
+
+    cv_data = resolve.load_yaml(cv_src)
+    if cv_src != paths.source(lang):
+        # A tailored CV gets the same validation as the base one, and the
+        # checks for what would break its build. Not the tag check: it is a
+        # copy, so that would only repeat the base CV's warnings per letter.
+        print(f"checking {paths.display(cv_src)}")
+        resolve.validate(cv_data, lang, cv_src)  # raises, like the base CV
         print("  schema ok")
+        label = f"{slug}/cv.yaml"
+        out += _check_photo(cv_data, label)
+        out += _check_images(cv_data, label)
+        out += _check_ids(cv_data, label)
 
-        lang = data["meta"]["lang"]
-        cv_src = paths.cv_source(lang, slug)
-        if not cv_src.is_file():
-            out.append(f"[{slug}] declares lang={lang!r} but {paths.display(cv_src)} is missing")
-            continue
+    ids = {c["id"] for c in cv_data.get("contacts", [])}
+    for cid in data.get("sender_contacts") or []:
+        if cid not in ids:
+            out.append(f"[{slug}] sender_contacts: no contact {cid!r} in {cv_src.name}")
 
-        cv_data = resolve.load_yaml(cv_src)
-        if cv_src != paths.source(lang):
-            # A tailored CV gets the same validation as the base one, and the
-            # checks for what would break its build. Not the tag check: it is a
-            # copy, so that would only repeat the base CV's warnings per letter.
-            print(f"checking {paths.display(cv_src)}")
-            resolve.validate(cv_data, lang, cv_src)  # raises, like the base CV
-            print("  schema ok")
-            label = f"{slug}/cv.yaml"
-            out += _check_photo(cv_data, label)
-            out += _check_images(cv_data, label)
-            out += _check_ids(cv_data, label)
+    out += _check_attachments(data, slug, lang)
 
-        ids = {c["id"] for c in cv_data.get("contacts", [])}
-        for cid in data.get("sender_contacts") or []:
-            if cid not in ids:
-                out.append(f"[{slug}] sender_contacts: no contact {cid!r} in {cv_src.name}")
+    for i, paragraph in enumerate(data.get("body") or []):
+        if "TODO" in paragraph:
+            out.append(f"[{slug}] body[{i}] still contains TODO")
 
-        out += _check_attachments(data, slug, lang)
-
-        for i, paragraph in enumerate(data.get("body") or []):
-            if "TODO" in paragraph:
-                out.append(f"[{slug}] body[{i}] still contains TODO")
-
-        # The composed line, not just the title: the prefix and the reference
-        # are most of what pushes it over, so measuring the title alone would
-        # have missed exactly the cases this warning is for.
-        subject = letter.subject_line(data, i18n.letter_labels(lang))
-        if len(subject) > SUBJECT_MAX:
-            out.append(
-                f"[{slug}] the subject line is {len(subject)} characters; over about "
-                f"{SUBJECT_MAX} it wraps onto a second line"
-            )
-
+    # The composed line, not just the title: the prefix and the reference
+    # are most of what pushes it over, so measuring the title alone would
+    # have missed exactly the cases this warning is for.
+    subject = letter.subject_line(data, i18n.letter_labels(lang))
+    if len(subject) > SUBJECT_MAX:
+        out.append(
+            f"[{slug}] the subject line is {len(subject)} characters; over about "
+            f"{SUBJECT_MAX} it wraps onto a second line"
+        )
     return out
 
 
@@ -221,54 +238,66 @@ def _check_dossiers() -> list[str]:
     that mislead then: leftover template text, no summary to match on, a
     status that says "applied" with no date.
     """
-    if not paths.APPLICATIONS.is_dir():
-        return []
+    out: list[str] = []
+    slugs = set(_slugs())
+    for slug in sorted(slugs):
+        out += _check_dossier(slug, slugs)
+    return out
+
+
+def _check_dossier(slug: str, slugs: set[str]) -> list[str]:
+    src = paths.dossier(slug)
+    if not src.is_file():
+        return [f"[{slug}] no dossier.yaml"]
+
+    print(f"checking {paths.display(src)}")
+    data = resolve.load_yaml(src)
+    resolve.validate_against(data, paths.DOSSIER_SCHEMA, paths.display(src))
+    print("  schema ok")
 
     out: list[str] = []
-    slugs = {p.name for p in paths.APPLICATIONS.iterdir() if p.is_dir()}
-    for slug in sorted(s for s in slugs if not s.startswith("_")):
-        src = paths.dossier(slug)
-        if not src.is_file():
-            out.append(f"[{slug}] no dossier.yaml")
-            continue
+    raw = src.read_text(encoding="utf-8")
+    for remnant in TEMPLATE_REMNANTS:
+        if remnant in raw:
+            out.append(f"[{slug}] dossier.yaml still contains template text {remnant!r}")
+    if TEMPLATE_TIMELINE in (data.get("timeline") or []):
+        out.append(
+            f"[{slug}] timeline still has the template entry "
+            f"{TEMPLATE_TIMELINE['date']} {TEMPLATE_TIMELINE['event']!r}"
+        )
 
-        print(f"checking {paths.display(src)}")
-        data = resolve.load_yaml(src)
-        resolve.validate_against(data, paths.DOSSIER_SCHEMA, paths.display(src))
-        print("  schema ok")
+    if not data.get("summary") or not data.get("keywords"):
+        out.append(
+            f"[{slug}] dossier.yaml has no summary or keywords - "
+            f"`cvforge list --match` cannot find it"
+        )
 
-        raw = src.read_text(encoding="utf-8")
-        for remnant in TEMPLATE_REMNANTS:
-            if remnant in raw:
-                out.append(f"[{slug}] dossier.yaml still contains template text {remnant!r}")
-        if TEMPLATE_TIMELINE in (data.get("timeline") or []):
-            out.append(
-                f"[{slug}] timeline still has the template entry "
-                f"{TEMPLATE_TIMELINE['date']} {TEMPLATE_TIMELINE['event']!r}"
-            )
+    status, applied = data.get("status"), data.get("applied")
+    if status in SENT and not applied:
+        out.append(f"[{slug}] status is {status!r} but `applied` has no date")
+    if applied and status in (None, "draft"):
+        out.append(f"[{slug}] `applied` is {applied} but status is still {status!r}")
 
-        if not data.get("summary") or not data.get("keywords"):
-            out.append(
-                f"[{slug}] dossier.yaml has no summary or keywords - "
-                f"`cvforge list --match` cannot find it"
-            )
+    posting_data = data.get("posting") or {}
+    archive = posting_data.get("archive")
+    if archive and not (paths.application(slug) / archive).is_file():
+        out.append(
+            f"[{slug}] posting.archive {archive!r} does not exist "
+            f"(it is relative to the application directory)"
+        )
+    if archive and not posting_data.get("fetched"):
+        out.append(f"[{slug}] posting.archive is set but posting.fetched has no date")
+    archived = sorted(
+        p.name for p in (paths.application(slug) / "posting").glob("*") if p.is_file()
+    )
+    if archived and not archive:
+        # A posting dropped into the folder by hand is invisible to whoever
+        # reads only the dossier - which is how it was once reported missing.
+        out.append(f"[{slug}] posting/ holds {', '.join(archived)} but posting.archive is null")
 
-        status, applied = data.get("status"), data.get("applied")
-        if status in SENT and not applied:
-            out.append(f"[{slug}] status is {status!r} but `applied` has no date")
-        if applied and status in (None, "draft"):
-            out.append(f"[{slug}] `applied` is {applied} but status is still {status!r}")
-
-        archive = (data.get("posting") or {}).get("archive")
-        if archive and not (paths.application(slug) / archive).is_file():
-            out.append(
-                f"[{slug}] posting.archive {archive!r} does not exist "
-                f"(it is relative to the application directory)"
-            )
-
-        based_on = (data.get("approach") or {}).get("based_on")
-        if based_on and based_on not in slugs:
-            out.append(f"[{slug}] approach.based_on names no application {based_on!r}")
+    based_on = (data.get("approach") or {}).get("based_on")
+    if based_on and based_on not in slugs:
+        out.append(f"[{slug}] approach.based_on names no application {based_on!r}")
     return out
 
 

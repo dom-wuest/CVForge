@@ -7,14 +7,14 @@
   "additionalProperties": false,
   "properties": {
     "summary": {
-      "description": "One or two sentences on what the job is - the domain, the problem, the stack. The anchor for finding similar applications later, so write what makes this job this job, not what every posting says. E.g. 'C++ 3D reconstruction from aerial imagery and lidar at city scale (Reality Engine), geospatial.'",
+      "description": "One or two sentences on what the job is - the domain, the problem, the stack. The anchor for finding similar applications later, so write what makes this job this job, not what every posting says. E.g. 'Python perception for warehouse robots: bin picking from RGB-D cameras, ROS 2, on-device inference.'",
       "type": [
         "string",
         "null"
       ]
     },
     "keywords": {
-      "description": "Free keywords for similarity: domain and technology, lowercase, English, singular. E.g. [3d reconstruction, photogrammetry, c++, geospatial]. No fixed vocabulary - reuse a word you used before where it fits, so `cvforge list --match` finds both.",
+      "description": "Free keywords for similarity: domain and technology, lowercase, English, singular. E.g. [robotics, bin picking, python, ros, edge deployment]. No fixed vocabulary - reuse a word you used before where it fits, so `cvforge list --match` finds both.",
       "type": [
         "array",
         "null"
@@ -29,7 +29,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
-          "description": "How you refer to the company, e.g. 'Esri R&D Center Stuttgart'. Omit to use letter.yaml's recipient.company, which is the legal entity.",
+          "description": "How you refer to the company, e.g. 'ACME Robotics Lab Berlin'. Omit to use letter.yaml's recipient.company, which is the legal entity.",
           "type": [
             "string",
             "null"
@@ -151,7 +151,7 @@
           ]
         },
         "cv": {
-          "description": "The tailoring in short, one item per change: 'iVS3D first in projects', 'theses removed', 'skill group 3D reconstruction added'.",
+          "description": "The tailoring in short, one item per change: 'flagship project first in projects', 'theses removed', 'skill group Robotics added'.",
           "type": [
             "array",
             "null"

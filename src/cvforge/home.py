@@ -118,10 +118,11 @@ def set_home(raw: str) -> int:
     )
     print(f"  wrote {paths.display(paths.LOCAL_CONFIG)}")
 
-    applications = home / "applications"
-    if not applications.is_dir():
-        applications.mkdir()
-        print(f"  wrote {applications}/")
+    for name in ("applications", "inbox"):
+        folder = home / name
+        if not folder.is_dir():
+            folder.mkdir()
+            print(f"  wrote {folder}/")
     sync_schema(home)
 
     env = os.environ.get(paths.HOME_ENV, "").strip()

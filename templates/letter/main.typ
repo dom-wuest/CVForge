@@ -22,6 +22,7 @@
 #import "components/letterhead.typ": letterhead
 #import "components/address.typ": address-band
 #import "components/signing.typ": signing
+#import "../pdf/components/marker.typ": flow-marker, height-marker
 
 #let slug = sys.inputs.at("slug", default: "preview")
 #let doc = json("/build/letter-" + slug + ".json")
@@ -51,6 +52,14 @@
 //
 // The compact layout drops all of that: the three blocks flow, so each starts
 // where the previous one ended, plus a fixed gap.
+//
+// For `cvforge`'s layout report: how much of its budget the letterhead uses.
+// Measured, not placed in the flow - it prints nothing either way.
+#height-marker(
+  "cvforge-letterhead",
+  letterhead(doc.meta, doc.sender.contacts),
+  letter-theme.address.top - letter-theme.page.margin.top,
+)
 #if compact {
   block(width: 100%, letterhead(doc.meta, doc.sender.contacts))
   v(letter-theme.compact.address-gap)
@@ -94,3 +103,6 @@
   enclosures: doc.enclosures,
   enclosures-label: doc.labels.enclosures,
 )
+
+// For `cvforge`'s layout report: where the letter ended. Prints nothing.
+#flow-marker("cvforge-letter-end", letter-theme.page.margin)

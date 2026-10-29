@@ -37,9 +37,9 @@ way; the skill maps by meaning, so English names work too.
 > | Bewerbung | How to apply: portal / email / post, plus every question the portal asks |
 > | Anzeige-Datei | File name of the archived posting PDF, if any |
 > | Arbeitsort | City; onsite / hybrid / remote; full-time / part-time / internship / working student / thesis |
-> | Basis | The earlier application this one builds on ("Aufbau wie NEURA"), or – |
+> | Basis | The earlier application this one builds on ("Aufbau wie ACME"), or – |
 > | Kurzbeschreibung | One or two sentences: what this job is – domain, problem, stack. Written to be matched against the next similar posting. |
-> | Schlagworte | 5–10 keywords, lowercase English: domain and technology (3d reconstruction, cuda, robotics, …) |
+> | Schlagworte | 5–10 keywords, lowercase English: domain and technology (robotics, bin picking, ros, …) |
 >
 > ## Unternehmen
 > Two or three sentences on the company.

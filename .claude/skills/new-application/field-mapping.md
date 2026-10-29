@@ -54,8 +54,8 @@ and is listed as `{file: "attachments/<name>", label: "<label>"}`.
 | Brief | Key |
 |---|---|
 | Kurzbeschreibung, else the Stelle section condensed | `summary` - one or two sentences: domain, problem, stack. What makes this job *this* job; it is what the next similar posting is matched against. |
-| Schlagworte, else derived from the posting | `keywords` - 5–10, lowercase English, singular: `[3d reconstruction, photogrammetry, c++, geospatial]`. Reuse words earlier dossiers use (`uv run cvforge list` shows them). |
-| Unternehmen section | `company.about` (2–3 sentences). `company.name` only if the usual name differs from the legal entity in `recipient.company` ("Esri R&D Center Stuttgart"). |
+| Schlagworte, else derived from the posting | `keywords` - 5–10, lowercase English, singular: `[robotics, bin picking, python, ros, edge deployment]`. Reuse words earlier dossiers use (`uv run cvforge list` shows them). |
+| Unternehmen section | `company.about` (2–3 sentences). `company.name` only if the usual name differs from the legal entity in `recipient.company` ("ACME Robotics Lab Berlin"). |
 | Arbeitsort / Standort | `role.location`, `role.work_model` (`onsite`/`hybrid`/`remote`, else `null`), `role.employment` (`full-time`/`part-time`/`internship`/`working-student`/`thesis`) |
 | Anzeige URL | `posting.url` |
 | posting file, if copied | `posting.archive` - relative to the application: `posting/<file>`. `posting.fetched` = today |
@@ -63,7 +63,7 @@ and is listed as `{file: "attachments/<name>", label: "<label>"}`.
 | Stelle section (requirements) | `posting.notes` - a short paraphrase of what they ask for, not the posting text |
 | Basis / "Aufbau wie <company>" | `approach.based_on` - the slug of that earlier application |
 | the letter's hook and lead | `approach.angle` - one or two sentences in your words: what the letter opens with, which experience it puts first |
-| CV-Änderungen (confirmed) | `approach.cv` - one short item per applied change ("iVS3D first in projects", "theses removed"). Not the text itself; that is in cv.yaml. |
+| CV-Änderungen (confirmed) | `approach.cv` - one short item per applied change ("flagship project first in projects", "skill group Robotics added"). Not the text itself; that is in cv.yaml. |
 | Lücken | `approach.gaps` - one item each, with how the letter handles it if it does |
 | Bewerbung | `submission.method` (`portal`/`email`/`post`), `submission.url` if it differs from `posting.url` |
 | Portalfragen | `submission.questions: [{question, answer}]` - verbatim, `answer: null` where the user fills it in |

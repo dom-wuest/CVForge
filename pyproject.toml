@@ -14,8 +14,18 @@ dependencies = [
     "watchfiles>=0.24",
 ]
 
+[project.optional-dependencies]
+# The local MCP server for Claude Desktop - `uv sync --extra mcp`. Kept out of
+# the core so the CLI and CI stay small.
+mcp = [
+    "mcp>=1.9",
+    "pypdf>=5.0",
+    "ruamel.yaml>=0.18",
+]
+
 [project.scripts]
 cvforge = "cvforge.cli:main"
+cvforge-mcp = "cvforge.mcp_server:main"
 
 [build-system]
 requires = ["hatchling"]
