@@ -32,3 +32,17 @@
   let height = measure(block(width: size.width, body)).height
   [#metadata((height_mm: height / 1mm, budget_mm: budget / 1mm))#label(name)]
 }))
+
+// How many lines `body` wraps into at the width it will actually get - for a
+// block whose extra lines cost the flow below it, like a subject that wraps.
+// A line count reads more directly than a height: "the subject takes two
+// lines" says what to fix. Counted against one line of `probe`, which the
+// caller sets in the same style as `body`, since only it knows that style -
+// and with the gap between lines, `leading`, which defaults to the paragraph's.
+#let lines-marker(name, body, probe, leading: auto) = place(layout(size => context {
+  let height = measure(block(width: size.width, body)).height
+  let line = measure(probe).height
+  let leading = if leading == auto { par.leading.to-absolute() } else { leading.to-absolute() }
+  let lines = calc.max(1, calc.round((height + leading) / (line + leading)))
+  [#metadata((lines: lines, height_mm: height / 1mm))#label(name)]
+}))

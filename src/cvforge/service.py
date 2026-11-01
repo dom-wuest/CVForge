@@ -197,23 +197,48 @@ def pages_label(count: int | None) -> str:
 # build has, in millimetres - which is how an overflow can be fixed by someone
 # who never sees the page.
 
-LETTER_MARKERS = ("cvforge-letter-end", "cvforge-letterhead")
+LETTER_MARKERS = (
+    "cvforge-letter-end",
+    "cvforge-letterhead",
+    "cvforge-subject",
+    "cvforge-recipient",
+)
 CV_MARKERS = ("cvforge-main-end", "cvforge-aside-end", "cvforge-projects-end")
 
 
 def _markers(main: Path, inputs: dict[str, str], names: tuple[str, ...]) -> dict[str, list]:
+    # `typst eval` is newer than `typst query`; a machine with a Typst that has
+    # only one of them still gets a report, rather than a silently empty one.
+    source = str(main.relative_to(paths.ROOT))
     fields = ", ".join(f'"{n}": query(<{n}>).map(it => it.value)' for n in names)
-    cmd = [typst(), "eval", f"({fields})", "--in", str(main.relative_to(paths.ROOT))]
-    cmd += _typst_args(main, inputs)
+    found = _typst_json([typst(), "eval", f"({fields})", "--in", source], main, inputs)
+    if isinstance(found, dict):
+        return found
+    selector = "selector(" + ").or(".join(f"<{n}>" for n in names) + ")"
+    found = _typst_json([typst(), "query", source, selector], main, inputs)
+    if not isinstance(found, list):
+        return {}
+    grouped: dict[str, list] = {}
+    for element in found:
+        grouped.setdefault(element.get("label", "").strip("<>"), []).append(element.get("value"))
+    return grouped
+
+
+def _typst_json(cmd: list[str], main: Path, inputs: dict[str, str]) -> Any:
     result = subprocess.run(
-        cmd, cwd=paths.ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
+        cmd + _typst_args(main, inputs),
+        cwd=paths.ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if result.returncode != 0:
-        return {}
+        return None
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError:
-        return {}
+        return None
 
 
 def _flow(marker: dict | None, expected_page: int) -> dict[str, Any] | None:
@@ -240,6 +265,15 @@ def letter_layout(slug: str, lang: str) -> dict[str, Any]:
             "budget_mm": round(head["budget_mm"], 1),
             "room_mm": round(head["budget_mm"] - head["height_mm"], 1),
         }
+    # What the body's room goes on: a subject that wraps, and - in the compact
+    # layout only, where the address is in the flow - the recipient's lines.
+    for key in ("subject", "recipient"):
+        lines = (found.get(f"cvforge-{key}") or [None])[0]
+        if lines:
+            report[key] = {
+                "lines": int(lines["lines"]),
+                "height_mm": round(lines["height_mm"], 1),
+            }
     return report
 
 

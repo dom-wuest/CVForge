@@ -126,6 +126,7 @@ src/cvforge/
                        draft builds, the layout report, list. CLI and MCP both call it.
   cli.py               argparse and printing; thin over service.py.
   posting.py           Text of an archived posting (pypdf).
+  guidance.py          <home>/guidance/: read the three files, append a learning.
   mcp_server.py        The local MCP server for Claude Desktop (`cvforge-mcp`).
   mcp_selftest.py      Its end-to-end test against a throwaway home.
 templates/pdf/       The CV renderer.
@@ -159,6 +160,7 @@ applications/<slug>/
   attachments/             one-off files for this job
   send/                    what `apply` built - emptied and refilled on every run
 schema/                  a mirror of schema/, kept current by `new`, `check`, `home set`
+guidance/                instructions.md, snippets.md (the user's), learnings.md (Claude appends)
 ```
 
 There is no `templates/web/`. Web presentation lives in the Portfolio repo.
@@ -671,13 +673,15 @@ tool returns is conversation content. Three independent layers:
    value. Exceptions of any kind pass through the same filter.
 3. **No dangerous verbs.** No delete, no `force`, no export; slugs must match
    `SLUG_RE` and resolve directly under `APPLICATIONS`; inbox files are bare
-   names. Writes: `letter.yaml`, `cv.yaml`, `dossier.yaml`, `posting/`.
+   names. Writes: `letter.yaml`, `cv.yaml`, `dossier.yaml`, `posting/`, and
+   appends to `guidance/learnings.md`.
 
 **Tools** - read-only: `status`, `list_applications`, `get_application`,
-`get_base_cv`, `get_reference`, `list_documents`, `read_inbox`. Drafting:
-`create_application`, `import_posting`, `edit_file`, `update_dossier`,
-`build_draft`. Decisive (`destructive_hint`, so Desktop asks): `apply`,
-`mark_sent`, `log_event`.
+`get_base_cv`, `get_reference`, `list_documents`, `read_inbox`, `get_guidance`.
+Drafting: `create_application`, `import_posting`, `edit_file`,
+`update_dossier`, `build_draft`, `remember`. Decisive (`destructive_hint`, so
+Desktop asks): `apply`, `mark_sent`, `log_event`. One prompt,
+`new_application`, in Desktop's "+" menu.
 
 - `get_application` returns every requested part: one that does not exist is
   `null`, with the reason under `unavailable` - a silently missing key read as
@@ -695,12 +699,27 @@ tool returns is conversation content. Three independent layers:
 - `build_draft` writes `out/letters/<slug>.pdf` and `out/drafts/<slug>-cv.pdf`,
   never `send/`, and returns the **layout report**: `templates/pdf/components/
   marker.typ` leaves `place`d metadata (zero size - renders are byte-identical
-  with and without it) where each flow ended and how tall the letterhead is;
-  `service._markers` reads it with `typst eval 'query(...)'` and reports
-  `room_mm` or `overflow_mm`.
+  with and without it) where each flow ended, how tall the letterhead is, and
+  how many lines the subject and - compact layout only, where it is in the
+  flow - the recipient take (`lines-marker`); `service._markers` reads it with
+  `typst eval 'query(...)'`, falling back to `typst query` on a Typst without
+  `eval`, and reports `room_mm` or `overflow_mm`.
 - The server's `INSTRUCTIONS` carry the workflow rules the skill used to:
-  never reword approved text, layout knobs only, `apply`/`mark_sent` only on the
-  user's word, look up and cite a missing address.
+  never reword approved body text, `apply`/`mark_sent` only on the user's
+  word, look up and cite a missing address. To fit a page Claude may, without
+  asking, shorten a wrapping `subject:` (reference first - the info block
+  shows it), drop the recipient's department/person in compact layout, and
+  set `justify`/`compact`; it tells the user what it changed.
+- **Guidance** stands in for a Claude Project's library and memory, which a
+  local Desktop session does not have. `<home>/guidance/` holds
+  `instructions.md` and `snippets.md` (the user's; no tool writes them) and
+  `learnings.md`. `get_guidance` returns all three (missing ones `null` +
+  `unavailable`); the `new_application` prompt inlines them, through `_guard`
+  by hand since prompts bypass `tool()`. `remember` appends one dated line and
+  is a drafting tool on purpose - the user chose no approval prompt and curates
+  the file by hand. It guards the text *before* writing, so a private value
+  cannot reach a file every later chat reads back, and it has no edit or
+  delete counterpart.
 
 **stdout is the protocol.** mcp 2.x diverts fd 1 to stderr while serving, and
 `service._run` captures typst's output; the `tool()` wrapper additionally

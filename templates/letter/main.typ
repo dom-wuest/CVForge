@@ -20,9 +20,9 @@
 #import "template.typ": letter-template
 #import "theme.typ": letter as letter-theme
 #import "components/letterhead.typ": letterhead
-#import "components/address.typ": address-band
+#import "components/address.typ": address-band, recipient-lines
 #import "components/signing.typ": signing
-#import "../pdf/components/marker.typ": flow-marker, height-marker
+#import "../pdf/components/marker.typ": flow-marker, height-marker, lines-marker
 
 #let slug = sys.inputs.at("slug", default: "preview")
 #let doc = json("/build/letter-" + slug + ".json")
@@ -63,6 +63,15 @@
 #if compact {
   block(width: 100%, letterhead(doc.meta, doc.sender.contacts))
   v(letter-theme.compact.address-gap)
+  // For the layout report: here every recipient line pushes the body down, so
+  // its line count is worth knowing. In the DIN layout the address sits in a
+  // fixed window and costs the body nothing, so it is not measured there.
+  lines-marker(
+    "cvforge-recipient",
+    block(width: letter-theme.address.width, recipient-lines(doc.recipient)),
+    [Hg],
+    leading: letter-theme.address.leading,
+  )
   address-band(doc.sender, doc.recipient, doc.info, none)
   v(letter-theme.compact.body-gap)
 } else {
@@ -85,7 +94,11 @@
 #v(letter-theme.date.below)
 
 // No "Betreff:" label - DIN 5008 dropped it, and bold already says what it is.
-#text(size: letter-theme.subject.size, weight: "bold", doc.subject)
+// Bound once so the layout report measures exactly what is printed: a subject
+// that wraps is the commonest waste of a line.
+#let subject-style = text.with(size: letter-theme.subject.size, weight: "bold")
+#lines-marker("cvforge-subject", subject-style(doc.subject), subject-style[Hg])
+#subject-style(doc.subject)
 #v(letter-theme.subject.below)
 
 #doc.salutation

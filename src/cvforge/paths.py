@@ -103,6 +103,12 @@ PRIVATE_DOCUMENTS = PRIVATE_ASSETS / "documents"
 
 PRIVATE = HOME / "private.yaml" if HOME else DATA / "private.yaml"
 
+# Standing instructions, reusable text and what was learned along the way -
+# the memory a chat in Claude Desktop starts from. Yours, like the
+# applications it was learned from, so it moves with the home (gitignored when
+# the repository is the home). See guidance.py.
+GUIDANCE = (HOME or ROOT) / "guidance"
+
 SCHEMA = ROOT / "schema"
 CV_SCHEMA = SCHEMA / "cv.schema.json"
 LETTER_SCHEMA = SCHEMA / "letter.schema.json"

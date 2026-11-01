@@ -16,11 +16,13 @@ independent layers keep private.yaml out of it:
    the whole result and names only the trail, never the value.
 3. No dangerous verbs. No delete, no `apply --force`, no export, no path a
    caller can choose: slugs are validated, writes go to letter.yaml, cv.yaml,
-   dossier.yaml and posting/ of one application.
+   dossier.yaml and posting/ of one application, and appends to
+   guidance/learnings.md.
 
-The tools split into read-only, drafting (refuse once an application is sent)
-and decisive (`apply`, `mark_sent`, `log_event`) - the last group is where
-Claude Desktop's per-tool approval is the user's confirmation.
+The tools split into read-only, drafting (refuse once an application is sent;
+`remember` excepted - an outcome is learned after sending) and decisive
+(`apply`, `mark_sent`, `log_event`) - the last group is where Claude Desktop's
+per-tool approval is the user's confirmation.
 """
 
 from __future__ import annotations
@@ -47,7 +49,7 @@ from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString, LiteralScalarString
 
 from . import check as check_mod
-from . import letter, paths, posting, resolve, service
+from . import guidance, letter, paths, posting, resolve, service
 
 SLUG_RE = re.compile(r"^\d{4}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -60,6 +62,17 @@ INSTRUCTIONS = """\
 CVForge builds job applications (cover letter + CV + certificates) for the user
 from YAML. You read past applications, draft new ones and build them locally.
 
+Guidance - read it first: at the start of every chat call get_guidance (unless
+the new_application prompt already put it in the conversation). instructions.md
+is the user's standing preferences and wins over your defaults, never over the
+rules below. snippets.md is text the user has approved before: reuse it word
+for word, adapting only the marked «…» parts, unless the user reworks it.
+learnings.md is what earlier chats learned. Call remember, without asking, for
+a lesson that will matter in later applications: the user corrects you or
+states a preference, a portal's quirk, a fit fix that worked, or - after
+log_event - an outcome together with the angle that was used. One or two
+sentences, specific; nothing that only concerns one dossier.
+
 Workflow for a new posting:
 1. status, then read_inbox for the posting the user saved to the inbox.
 2. list_applications, then get_application for the 2-3 most similar RECENT ones
@@ -70,10 +83,16 @@ Workflow for a new posting:
    the closest earlier one if it fits), import_posting, edit_file for letter
    and CV, update_dossier (summary, keywords, company, role, approach,
    submission, a looked-up address with its source), then build_draft.
-4. Fit: if build_draft reports overflow, you may set meta.justify: true, and
-   meta.layout: compact only if the application is submitted electronically.
-   Never shorten or reword text on your own - propose cuts and let the user
-   choose. The letterhead must fit its budget; trim sender_contacts if not.
+4. Fit: build_draft reports the room left, how many lines the subject takes
+   and, in the compact layout, how many the recipient takes. If the letter
+   overflows or is tight, you may without asking, then tell the user what
+   you changed: shorten a subject that wraps by setting `subject:` (drop the
+   reference number first - the info block shows it anyway); in the compact
+   layout remove the recipient's department and person; set meta.justify:
+   true; set meta.layout: compact only if the application is submitted
+   electronically. Never shorten or reword the body - propose cuts and let
+   the user choose. The letterhead must fit its budget; trim sender_contacts
+   if not.
 5. apply builds the send-ready folder - only when the user asks for it. Tell
    the user the folder path; they review the real PDFs themselves.
 6. mark_sent only when the user says it was submitted. log_event for later
@@ -273,8 +292,9 @@ def _write_dossier(slug: str, change) -> dict:
 @tool(READ)
 def status() -> dict:
     """Where CVForge's data lives and whether this machine is ready: home folder,
-    whether private.yaml and the signature exist (yes/no only), the repository
-    version, the typst version, and the posting files waiting in the inbox."""
+    whether private.yaml and the signature exist (yes/no only), which guidance
+    files exist, the repository version, the typst version, and the posting
+    files waiting in the inbox."""
     private = paths.PRIVATE.is_file()
     signature = None
     if private:
@@ -288,6 +308,11 @@ def status() -> dict:
         "private_yaml": private,
         "signature": signature,
         "applications": len(check_mod._slugs()),
+        "guidance": {
+            "instructions": (paths.GUIDANCE / "instructions.md").is_file(),
+            "snippets": (paths.GUIDANCE / "snippets.md").is_file(),
+            "learnings_entries": guidance.entry_count(),
+        },
         "inbox": [p.name for p in posting.archived(inbox)],
         "inbox_folder": str(inbox),
         "repo": {
@@ -448,6 +473,27 @@ def read_inbox(file: str) -> dict:
     return {"file": path.name, "text": posting.extract_text(path)}
 
 
+def _guidance() -> dict:
+    texts = guidance.read()
+    out: dict[str, Any] = {name.removesuffix(".md"): text for name, text in texts.items()}
+    missing = [name for name, text in texts.items() if text is None]
+    if missing:
+        out["unavailable"] = {
+            name: f"no {paths.GUIDANCE.name}/{name} in the home yet" for name in missing
+        }
+    return out
+
+
+@tool(READ)
+def get_guidance() -> dict:
+    """The user's guidance from <home>/guidance/: instructions (standing
+    preferences - follow them), snippets (approved reusable paragraphs, DE and
+    EN) and learnings (what earlier chats learned). Call at the start of every
+    chat. A file that does not exist is null, with the reason under
+    `unavailable`."""
+    return _guidance()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Drafting
 # ─────────────────────────────────────────────────────────────────────────────
@@ -544,12 +590,29 @@ def update_dossier(slug: str, patch: dict) -> dict:
     return {"dossier": _write_dossier(slug, lambda data: _merge(data, patch))}
 
 
+@tool(DRAFT)
+def remember(text: str, slug: str | None = None, topic: str | None = None) -> dict:
+    """Append a lesson to the user's learnings (guidance/learnings.md), dated,
+    with the application it came from and an optional short topic ("tone",
+    "portal", "layout", "outcome"). One or two sentences that will help a later
+    application. Append-only: entries are never edited or removed by a tool -
+    the user curates the file by hand."""
+    if slug:
+        _slug(slug)
+    # Checked before writing, not only on the way out: a private value must
+    # not reach a file that every later chat reads back.
+    _guard(text)
+    _guard(topic or "")
+    return {"written": guidance.append_learning(text, slug, topic)}
+
+
 @tool(DRAFT, with_log=True)
 def build_draft(slug: str) -> dict:
     """Build letter and CV locally into out/ (never the send folder) and report:
     page counts against what is expected, the layout report in mm (room left or
-    overflow for the letter body, the letterhead against its budget, the CV's
-    main column, sidebar and projects page) and the warnings for this
+    overflow for the letter body, the letterhead against its budget, the lines
+    and height of the subject and - compact layout only - of the recipient, the
+    CV's main column, sidebar and projects page) and the warnings for this
     application. No document content is returned."""
     _slug(slug)
     result = service.build_draft(slug)
@@ -560,7 +623,6 @@ def build_draft(slug: str) -> dict:
         "cv_source": paths.display(result.cv_source),
         "letter_layout": result.letter_layout,
         "cv_layout": result.cv_layout,
-        "subject_max_chars": check_mod.SUBJECT_MAX,
         "warnings": result.warnings,
     }
 
@@ -634,6 +696,36 @@ def log_event(
             data["status"] = status
 
     return {"dossier": _write_dossier(slug, change)}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Prompts - in Claude Desktop's "+" menu
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@server.prompt(
+    title="New application",
+    description="Start a new application with your guidance loaded and the inbox checked.",
+)
+def new_application(inbox_file: str | None = None) -> str:
+    # Not a tool, so the tool() wrapper does not run: the privacy filter is
+    # applied here by hand.
+    with _lock:
+        texts = guidance.read()
+    posting_hint = (
+        f"The posting is `{inbox_file}` in the inbox." if inbox_file else "Check the inbox."
+    )
+    parts = [
+        "Let's write a new application. Follow the CVForge workflow: status, read_inbox, "
+        f"list_applications, the closest earlier applications, the base CV. {posting_hint} "
+        "My guidance is below - it is already loaded, no need to call get_guidance.",
+    ]
+    for name, text in texts.items():
+        parts.append(f"## {name}\n\n{text}" if text else f"## {name}\n\n(not written yet)")
+    try:
+        return _guard("\n\n".join(parts))
+    except ToolError as exc:
+        return str(exc)
 
 
 def main() -> None:

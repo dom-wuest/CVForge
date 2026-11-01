@@ -21,6 +21,11 @@ assets/private/
 applications/*
 !applications/_template/
 
+# Your standing instructions, text snippets and learnings for Claude Desktop -
+# written from these applications, so private for the same reasons. Here only
+# when the repository is the home; normally they live in the home.
+/guidance/
+
 # ─── Editable diagram sources ───────────────────────────────────────────────
 # draw.io exports embed their whole editable mxfile in a PNG metadata chunk.
 # For resources/iVS3D_overview.png that chunk was 12.8MB against 240KB of

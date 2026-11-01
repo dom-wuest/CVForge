@@ -153,6 +153,45 @@ async def _run(home: Path) -> list[tuple[str, bool, str]]:
         draft = json.loads(text) if not err else {}
         check("build_draft", draft.get("letter_pages") == 1, text)
         check("draft leaves send/ alone", not (app / "send").exists())
+        layout = draft.get("letter_layout") or {}
+        check("subject lines reported", (layout.get("subject") or {}).get("lines") == 1, text)
+        check("no recipient lines in din", "recipient" not in layout, text)
+
+        # A subject that wraps, and the compact layout: both now measured.
+        long_subject = "Application for " + "a very long job title indeed " * 4
+        edits = [
+            {"old": "subject: null", "new": f'subject: "{long_subject.strip()}"'},
+            {"old": "layout: din", "new": "layout: compact"},
+        ]
+        err, text = await call("edit_file", slug=SLUG, file="letter", edits=edits)
+        check("edit to a wrapping subject", not err, text)
+        err, text = await call("build_draft", slug=SLUG)
+        layout = (json.loads(text).get("letter_layout") or {}) if not err else {}
+        check("wrapped subject counted", (layout.get("subject") or {}).get("lines") == 2, text)
+        check("compact recipient lines", (layout.get("recipient") or {}).get("lines", 0) >= 3, text)
+
+        # Guidance: missing at first, then a learning appended and read back.
+        err, text = await call("get_guidance")
+        g = json.loads(text) if not err else {}
+        missing = g.get("learnings") is None and "learnings.md" in g.get("unavailable", {})
+        check("get_guidance without files", not err and missing, text)
+        err, text = await call("remember", text="Portals take one PDF.", slug=SLUG, topic="portal")
+        check("remember", not err and "Portals take one PDF." in text, text)
+        err, text = await call("remember", text="Call +49 999 7654321 first.")
+        learnings = home / "guidance" / "learnings.md"
+        stored = learnings.read_text("utf-8") if learnings.is_file() else ""
+        check("private value never remembered", err and "7654321" not in stored, text)
+        err, text = await call("get_guidance")
+        check("learning read back", not err and "Portals take one PDF." in text, text)
+        err, text = await call("status")
+        st = json.loads(text) if not err else {}
+        check("status counts learnings", st.get("guidance", {}).get("learnings_entries") == 1, text)
+        prompts = await session.list_prompts()
+        check("new_application prompt", any(p.name == "new_application" for p in prompts.prompts))
+        res = await session.get_prompt("new_application", {"inbox_file": "posting.md"})
+        prompt_text = "".join(getattr(m.content, "text", "") for m in res.messages)
+        seen.append(prompt_text)
+        check("prompt carries learnings", "Portals take one PDF." in prompt_text, prompt_text)
 
         err, text = await call("apply", slug=SLUG)
         check("apply", not err and len(json.loads(text)["files"]) == 3, text)

@@ -636,7 +636,7 @@ you paste a posting into a chat.
 
 | Goes to Claude | Never does |
 |---|---|
-| Postings, letter.yaml, cv.yaml (placeholders), dossiers, page counts, layout numbers, warnings | Phone, address, private e-mail - anything in `private.yaml` - the signature, the certificates, the built PDFs |
+| Postings, letter.yaml, cv.yaml (placeholders), dossiers, your guidance files, page counts, layout numbers, warnings | Phone, address, private e-mail - anything in `private.yaml` - the signature, the certificates, the built PDFs |
 
 Every result is scanned for every value in `private.yaml` before it is
 returned; a hit is withheld. No page images are sent - Claude fits the layout
@@ -664,6 +664,27 @@ from numbers ("3.5 mm left", "overflows 12 mm"), and you look at the PDFs.
 
 Any time, without prompts: *"Which applications are open?"*, *"What did I lead
 with for rendering jobs?"*
+
+To fit the letter on one page, Claude may shorten a subject line that wraps
+(dropping the reference number first, since it is printed beside the address
+anyway) and, in the compact layout, remove the department and contact person
+from the recipient. It tells you what it changed. It never shortens the letter
+text itself.
+
+### Guidance and memory
+
+A local chat in Claude Desktop has no Project library, so the server provides
+one from `<home>/guidance/`, synced with the rest of the home:
+
+| File | Who writes it | What it is |
+|---|---|---|
+| `instructions.md` | you | Standing preferences: tone, content, process. Claude follows them. |
+| `snippets.md` | you | Approved paragraphs from earlier letters, DE and EN. Claude reuses them word for word and adapts only the `«…»` parts. |
+| `learnings.md` | Claude | One dated line per lesson, added without asking. Condense or delete entries whenever you like. |
+
+Claude reads all three at the start of each chat. You can also start a chat
+from the **New application** prompt in Desktop's "+" menu, which loads them
+for you. `cvforge home` shows whether the folder exists.
 
 The `/new-application` skill for Claude Code still works the old way.
 

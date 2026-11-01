@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 from . import paths, resolve
+from .guidance import FILES as GUIDANCE_FILES
 
 
 def sync_schema(home: Path | None = None, *, quiet: bool = False) -> list[Path]:
@@ -77,6 +78,9 @@ def show(home: Path | None = None, origin: str | None = None) -> int:
         else 0
     )
     _status("applications/", applications.is_dir(), f"{count} application(s)")
+    guidance = home / "guidance"
+    present = [n for n in GUIDANCE_FILES if (guidance / n).is_file()]
+    _status("guidance/", bool(present), ", ".join(present) or str(guidance))
 
     # Left behind after a move: say so, but never touch it. Whether the copy in
     # the home is complete is yours to judge, and these files have no backup.
