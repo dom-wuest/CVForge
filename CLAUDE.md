@@ -23,6 +23,7 @@ signature, certificates) is kept out of every tracked file by construction.
 - [Styling the CV](#styling-the-cv)
 - [Publishing to the website](#publishing-to-the-website)
 - [The MCP server](#the-mcp-server)
+- [The dashboard](#the-dashboard)
 - [Troubleshooting](#troubleshooting)
 - [Verification recipe](#verification-recipe)
 
@@ -127,6 +128,7 @@ src/cvforge/
   cli.py               argparse and printing; thin over service.py.
   posting.py           Text of an archived posting (pypdf).
   guidance.py          <home>/guidance/: read the three files, append a learning.
+  dashboard.py         Every dossier derived into JSON, embedded in <home>/dashboard.html.
   mcp_server.py        The local MCP server for Claude Desktop (`cvforge-mcp`).
   mcp_selftest.py      Its end-to-end test against a throwaway home.
 templates/pdf/       The CV renderer.
@@ -137,6 +139,7 @@ templates/pdf/       The CV renderer.
                        marker.typ (invisible layout metadata for the report).
   sections/            One module per CV section.
   main.typ             Assembly only.
+templates/dashboard/ dashboard.html: the page dashboard.py fills. Vanilla JS, no CDN.
 templates/letter/    The letter renderer. Imports ../pdf/ for theme, icons and
                      the contact row, so the two cannot drift apart on look.
 assets/
@@ -158,7 +161,9 @@ applications/<slug>/
   brief.md                 the brief /new-application was run from
   posting/                 the archived posting
   attachments/             one-off files for this job
+  recv/                    documents received from them (forms, questionnaires), linked from events
   send/                    what `apply` built - emptied and refilled on every run
+dashboard.html           every application on one page - rewritten, never edited
 schema/                  a mirror of schema/, kept current by `new`, `check`, `home set`
 guidance/                instructions.md, snippets.md (the user's), learnings.md (Claude appends)
 ```
@@ -494,6 +499,27 @@ once survived unedited and read as facts), no `summary`/`keywords`, a sent
 not exist or has no `posting.fetched`, files in `posting/` that
 `posting.archive` does not name (a posting dropped in by hand is invisible to
 whoever reads only the dossier), an `approach.based_on` naming no application.
+`check._check_timeline` adds what breaks the dashboard's links: a `with` name
+that is not in `contacts`, a `track` with no `tracks` entry, an event `files`
+path that does not exist, and a `planned` entry whose day has passed.
+
+**Timeline entries are structured.** Besides `date` and a one-line `event`:
+`time`, `kind` (submitted, call, interview, … - `build` for CVForge's own
+entries), `channel`, `with` (participants, by contact name), `track`, `notes`
+(what was said - Markdown, "- " lists) and `files` (relative to the
+application, e.g. `recv/` for documents received). `planned: true` marks
+something ahead - an appointment, a deadline, a promised answer - and
+`approx: true` an estimated date. When it happens, the same entry is updated
+(`update_event`), not a second one added. The rule for where text goes: what
+was said at an event in that event's `notes`; facts about a person in their
+contact `notes`; what concerns the application as a whole in the dossier
+`notes`. One fact, one place.
+
+**Tracks** are optional processes inside one application, each with its own
+status (`proposed` … `moved`): the clients a placement agency proposes you to,
+or the other posting a company moved you to. Events name one with `track`.
+The application's `status` stays the relationship with the company applied
+to. A contact working for someone else (the client's interviewer) has `org`.
 
 The scaffold therefore ships every value empty; `new` adds only a dated
 "Created" timeline entry. `posting.archive` is relative to the application
@@ -673,15 +699,24 @@ tool returns is conversation content. Three independent layers:
    value. Exceptions of any kind pass through the same filter.
 3. **No dangerous verbs.** No delete, no `force`, no export; slugs must match
    `SLUG_RE` and resolve directly under `APPLICATIONS`; inbox files are bare
-   names. Writes: `letter.yaml`, `cv.yaml`, `dossier.yaml`, `posting/`, and
-   appends to `guidance/learnings.md`.
+   names. Writes: `letter.yaml`, `cv.yaml`, `dossier.yaml`, `posting/`,
+   appends to `guidance/learnings.md`, and `<home>/dashboard.html` - rewritten
+   by `tool()` after every non-read tool, never returned.
 
 **Tools** - read-only: `status`, `list_applications`, `get_application`,
 `get_base_cv`, `get_reference`, `list_documents`, `read_inbox`, `get_guidance`.
 Drafting: `create_application`, `import_posting`, `edit_file`,
 `update_dossier`, `build_draft`, `remember`. Decisive (`destructive_hint`, so
-Desktop asks): `apply`, `mark_sent`, `log_event`. One prompt,
-`new_application`, in Desktop's "+" menu.
+Desktop asks): `apply`, `mark_sent`, `log_event`, `update_event`,
+`set_track`. One prompt, `new_application`, in Desktop's "+" menu.
+
+- `log_event` takes the structured fields (`participants` is written as
+  `with`) and inserts in date order, so a late-logged event does not land
+  behind a planned one. `update_event` finds one entry by `date` plus a
+  substring of its event and replaces the fields given - the way a planned
+  entry is completed. Both return `check._check_timeline`'s warnings for the
+  dossier, e.g. a participant who is not a contact yet. `set_track` upserts a
+  track; `track_status` on the event tools moves it.
 
 - `get_application` returns every requested part: one that does not exist is
   `null`, with the reason under `unavailable` - a silently missing key read as
@@ -694,8 +729,8 @@ Desktop asks): `apply`, `mark_sent`, `log_event`. One prompt,
   `letter.resolve_letter` (plus CV validation); any error restores the file.
   Refused once sent, like `apply`.
 - `update_dossier` deep-merges with ruamel.yaml so comments survive; it refuses
-  `status`, `applied`, `timeline`, which only `mark_sent`/`log_event` set -
-  recording a submission is always its own, approved call.
+  `status`, `applied`, `timeline`, `tracks`, which only the decisive tools set -
+  recording a submission or news is always its own, approved call.
 - `build_draft` writes `out/letters/<slug>.pdf` and `out/drafts/<slug>-cv.pdf`,
   never `send/`, and returns the **layout report**: `templates/pdf/components/
   marker.typ` leaves `place`d metadata (zero size - renders are byte-identical
@@ -728,6 +763,35 @@ redirects `sys.stdout`/`stderr` per call and returns note/warning lines as
 
 Postings reach the server through `<home>/inbox/` (a chat attachment never
 reaches a local process); `import_posting` moves one into `posting/`.
+
+---
+
+## The dashboard
+
+`cvforge dashboard [--open]` writes `<home>/dashboard.html`: an overview (next
+dates, what needs attention, the pipeline, an activity strip), one page per
+application (tracks, the timeline with participants and expandable notes,
+people, files) and a people view across applications. Read-only by design;
+everything is still written through the CLI or the MCP tools.
+
+- **Same split as the CV.** `dashboard.collect` derives every value - date
+  labels, "next step", overdue flags, strip positions, each contact's activity,
+  notes split into paragraphs and lists - and embeds the JSON in the template
+  at `/*CVFORGE_DATA*/null`, with `<`, `>`, `&` escaped so a note cannot close
+  the `<script>`. The page's JS only routes (`#/`, `#/app/<slug>`,
+  `#/people`) and draws, and it sets every value as text, never HTML: the
+  dossiers hold other people's writing.
+- **Local by construction.** It holds recruiters' details and interview notes,
+  so it lives in the home beside the dossiers (OneDrive syncs it to the
+  laptop) and is gitignored when the repository is the home. No tool returns
+  it. Links are relative to the home, so they work on every machine; folder
+  links open the browser's file listing.
+- **Always current.** The MCP `tool()` wrapper calls `dashboard.refresh()`
+  after every non-read tool. A failure there is a warning in the log, never a
+  failed tool - the change it follows is already written.
+- **Thresholds** are module constants: `STALE_DAYS` (applied, no news →
+  attention), `AHEAD_DAYS` (how far "Next up" looks), `STRIP_BACK`/
+  `STRIP_AHEAD` (the activity window).
 
 ---
 
@@ -797,6 +861,7 @@ rm -f build/cv-app-scratch-cv.json build/letter-scratch-cv.json build/letter-scr
 
 # The MCP server, end to end over stdio, in its own throwaway home
 uv run --extra mcp python -m cvforge.mcp_selftest   # "N/N passed", incl. the leak test
+                                                    # (it covers the dashboard page too)
 rm -f out/letters/scratch-verify.pdf out/letters/scratch-cv.pdf
 
 # A home that is set but missing refuses, rather than falling back to the repo

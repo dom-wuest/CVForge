@@ -1,0 +1,477 @@
+<!doctype html>
+<!-- ─── dashboard.html ───
+     The page `cvforge dashboard` writes into the home. Python (dashboard.py)
+     derives every value and embeds it below as JSON; this file only routes
+     between three views - overview, one application, people - and draws them.
+     Every value is set as text, never as HTML: the dossiers hold postings and
+     notes written by other people. Self-contained on purpose - no CDN, no
+     fonts to fetch - so it opens offline from any synced copy of the home. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CVForge applications</title>
+<style>
+:root {
+  --bg: #F6F6F3; --surface: #FFFFFF; --column: #EDEDE8; --border: #E3E3DE; --line: #EFEFEA;
+  --control: #D9D9D3; --ink: #18181B; --ink-2: #3F3F46; --muted: #5F5F66; --chip: #F2F2EE;
+  --accent: #2B59C3; --accent-ink: #1D3F8F; --avatar: #DCE4F7; --avatar-ink: #1D3F8F;
+  --rail: #A9BBE6; --dash: #9DB1E3;
+  --blue-bg: #E6EEFB; --blue: #1E4FB5; --violet-bg: #E9E5FB; --violet: #4B32B0;
+  --green-bg: #E3F4EA; --green: #1C6B3E; --rose-bg: #F3ECEC; --rose: #7A4A4A;
+  --warn-bg: #FCEFE3; --warn: #8A4100; --warn-dot: #B4500A; --idle-dot: #8A8A92;
+  --teal-bg: #E3F1F1; --teal: #1F5F5F;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141416; --surface: #1C1C1F; --column: #202024; --border: #2E2E33; --line: #26262A;
+    --control: #3A3A40; --ink: #ECECEE; --ink-2: #C9C9CE; --muted: #9A9AA2; --chip: #26262A;
+    --accent: #8EA9F2; --accent-ink: #B9CBF7; --avatar: #2A3550; --avatar-ink: #C7D4F7;
+    --rail: #3E5390; --dash: #4C63A6;
+    --blue-bg: #1F2B45; --blue: #A9C0F5; --violet-bg: #2A2447; --violet: #C3B6F7;
+    --green-bg: #1D3527; --green: #9ED7B3; --rose-bg: #3A2626; --rose: #E0B4B4;
+    --warn-bg: #3D2A1A; --warn: #F2B98A; --warn-dot: #E08A4A; --idle-dot: #77777F;
+    --teal-bg: #1C3434; --teal: #9ED3D3;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 15px/1.45 Inter, "Segoe UI", system-ui, -apple-system, sans-serif; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-ink); }
+button { font: inherit; color: inherit; }
+h1, h2, h3, p, ul { margin: 0; }
+.page { max-width: 1360px; margin: 0 auto; padding: 32px 24px 48px; display: flex; flex-direction: column; gap: 24px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.tiny { font-size: 12px; }
+.label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.card > h2 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.split { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.split > h2 { font-size: 17px; font-weight: 600; }
+.item { border-top: 1px solid var(--line); padding: 12px 0; }
+.empty { color: var(--muted); font-size: 14px; padding: 16px 0 4px; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.brand { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.top h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+.btn { border: 1px solid var(--control); background: var(--surface); border-radius: 8px; padding: 10px 14px; min-height: 44px; font-size: 14px; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; cursor: pointer; }
+.btn:hover { color: var(--ink); border-color: var(--muted); }
+.btn.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
+/* pills */
+.pill { display: inline-block; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 2px 10px; background: var(--chip); color: var(--ink-2); white-space: nowrap; }
+.st-applied { background: var(--surface); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--border); }
+.st-screening, .st-proposed { background: var(--blue-bg); color: var(--blue); }
+.st-interview { background: var(--violet-bg); color: var(--violet); }
+.st-offer { background: var(--green-bg); color: var(--green); }
+.st-rejected { background: var(--rose-bg); color: var(--rose); }
+.kind { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 6px; padding: 2px 8px; background: var(--chip); color: var(--ink-2); white-space: nowrap; }
+.k-call, .k-email { background: var(--blue-bg); color: var(--blue); }
+.k-interview, .k-trial-day { background: var(--violet-bg); color: var(--violet); }
+.k-submitted, .k-offer { background: var(--green-bg); color: var(--green); }
+.k-rejection { background: var(--rose-bg); color: var(--rose); }
+.k-assessment, .k-overdue { background: var(--warn-bg); color: var(--warn); }
+.channel { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 1px 7px; }
+.trk { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 1px 8px; background: var(--teal-bg); color: var(--teal); }
+.next { font-size: 13px; border-radius: 6px; padding: 6px 8px; background: var(--bg); color: var(--ink-2); }
+.tone-plain { background: var(--bg); color: var(--ink-2); }
+.tone-soon { background: var(--blue-bg); color: var(--blue); }
+.tone-warn { background: var(--warn-bg); color: var(--warn); }
+.person { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; background: var(--chip); border-radius: 999px; padding: 3px 10px 3px 3px; }
+.avatar { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--avatar); color: var(--avatar-ink); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.avatar.big { width: 36px; height: 36px; font-size: 13px; }
+
+/* overview */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+.kpi b { display: block; font-size: 28px; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 14px; color: var(--muted); }
+.pair { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.pair > :first-child { flex: 3 1 520px; }
+.pair > :last-child { flex: 2 1 360px; }
+.when { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 16px; }
+.when b { display: block; font-size: 14px; }
+.when a { color: var(--ink); text-decoration: none; font-weight: 600; }
+.when a:hover { text-decoration: underline; }
+.dot { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; background: var(--idle-dot); }
+.dot.warn { background: var(--warn-dot); }
+.flag { display: flex; gap: 12px; }
+.flag a { font-weight: 600; color: var(--ink); text-decoration: none; }
+.flag a:hover { text-decoration: underline; }
+.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; align-items: start; }
+.column { background: var(--column); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.column-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px; }
+.tile { text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.tile:hover { border-color: var(--muted); color: inherit; }
+.tile .co { font-size: 15px; font-weight: 600; }
+.tile .ti { font-size: 14px; color: var(--ink-2); line-height: 1.35; }
+.tracks { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
+.tracks div { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.tracks .pill { font-size: 12px; padding: 1px 8px; }
+.placeholder { font-size: 14px; color: var(--muted); padding: 20px 8px; text-align: center; border: 1px dashed var(--control); border-radius: 10px; }
+.closed { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+.closed a { font-size: 13px; color: var(--muted); background: var(--chip); border-radius: 999px; padding: 4px 10px; text-decoration: none; }
+.closed a:hover { color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend .pip { position: static; margin: 0; display: inline-block; }
+.scroll { overflow-x: auto; }
+.strip { min-width: 680px; display: flex; flex-direction: column; }
+.strip-row { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 16px; align-items: center; }
+.strip-row + .strip-row { border-top: 1px solid var(--line); min-height: 40px; }
+.strip-row a { font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.strip-row a:hover { text-decoration: underline; }
+.lane { position: relative; height: 40px; }
+.axis { position: relative; height: 18px; font-size: 12px; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.lane .base { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border); }
+.lane .span { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--rail); }
+.lane .today, .axis .today-line { position: absolute; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--ink); opacity: .18; }
+.pip { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--accent); border: 2px solid var(--accent); }
+.pip.planned { background: var(--surface); }
+.pip.overdue { background: var(--surface); border-color: var(--warn-dot); }
+
+/* detail */
+.back { font-size: 14px; text-decoration: none; }
+.head { padding: 24px; gap: 14px; }
+.head h1 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; }
+.head .company { font-size: 17px; color: var(--ink-2); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--ink-2); }
+.banner { display: flex; flex-wrap: wrap; gap: 12px; border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+.banner b { font-weight: 600; }
+.trackcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.trackcard { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--teal); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.columns { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.columns > main { flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.columns > aside { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.ev { display: grid; grid-template-columns: 92px 24px minmax(0, 1fr); column-gap: 8px; }
+.ev-date { padding-top: 14px; text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.ev-date b { font-size: 14px; }
+.ev-rail { position: relative; display: flex; justify-content: center; }
+.ev-rail::before { content: ""; position: absolute; top: 0; bottom: 0; left: 11px; width: 2px; background: var(--border); }
+.ev-node { position: relative; margin-top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--accent); }
+.ev.planned .ev-node { background: var(--surface); }
+.ev.overdue .ev-node { background: var(--surface); border-color: var(--warn-dot); }
+.ev-body { padding: 6px 0; }
+.ev-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.ev.planned .ev-card { border: 1px dashed var(--dash); }
+.ev.overdue .ev-card { border: 1px dashed var(--warn-dot); }
+.ev-head { all: unset; box-sizing: border-box; width: 100%; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-height: 44px; }
+button.ev-head { cursor: pointer; }
+button.ev-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 10px; }
+.ev-title { font-size: 15px; font-weight: 600; flex: 1 1 220px; min-width: 0; }
+.ev-notes { border-top: 1px solid var(--line); padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+.prose { font-size: 14px; line-height: 1.5; color: var(--ink-2); display: flex; flex-direction: column; gap: 8px; }
+.prose ul { padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.contact { display: flex; gap: 12px; }
+.contact .who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.contact .name { font-size: 15px; font-weight: 600; }
+.files a { display: block; font-size: 14px; text-decoration: none; padding: 3px 0; overflow-wrap: anywhere; }
+.files a:hover { text-decoration: underline; }
+.kw { font-size: 12px; color: var(--ink-2); background: var(--chip); border-radius: 999px; padding: 2px 9px; }
+.app-link { font-size: 13px; text-decoration: none; }
+
+@media (max-width: 640px) {
+  .page { padding: 20px 16px 40px; gap: 18px; }
+  .ev { grid-template-columns: 64px 20px minmax(0, 1fr); }
+  .ev-rail::before { left: 9px; }
+  .when { grid-template-columns: 84px minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<div id="app" class="page"></div>
+<noscript><p style="padding: 24px">This page draws itself with JavaScript.</p></noscript>
+<script id="cvforge-data" type="application/json">/*CVFORGE_DATA*/null</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("cvforge-data").textContent);
+const APPS = Object.fromEntries((DATA ? DATA.applications : []).map((a) => [a.slug, a]));
+const root = document.getElementById("app");
+const opened = {};
+let scope = "active";
+try { scope = localStorage.getItem("cvforge-scope") || "active"; } catch (e) { /* private window */ }
+
+// The one way anything reaches the page: strings become text nodes.
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [key, value] of Object.entries(props || {})) {
+    if (value == null || value === false) continue;
+    if (key === "class") el.className = value;
+    else if (key.startsWith("on")) el.addEventListener(key.slice(2), value);
+    else el.setAttribute(key, value === true ? "" : value);
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false || kid === "") continue;
+    el.append(kid instanceof Node ? kid : String(kid));
+  }
+  return el;
+}
+
+const appHref = (slug) => "#/app/" + encodeURIComponent(slug);
+const pill = (status) => h("span", { class: "pill st-" + status }, status);
+const person = (p) => h("span", { class: "person" }, h("span", { class: "avatar", "aria-hidden": "true" }, p.initials), p.name);
+const kindTag = (e) => h("span", { class: "kind k-" + (e.overdue ? "overdue" : e.kind) }, e.kind_label);
+
+function prose(blocks) {
+  return h("div", { class: "prose" }, blocks.map((b) =>
+    b.items ? h("ul", {}, b.items.map((i) => h("li", {}, i))) : h("p", {}, b.text)));
+}
+
+function header(view) {
+  const nav = h("div", { class: "row" },
+    h("a", { class: "btn" + (view === "overview" ? " on" : ""), href: "#/" }, "Overview"),
+    h("a", { class: "btn" + (view === "people" ? " on" : ""), href: "#/people" }, "People"));
+  if (view === "overview") {
+    nav.append(
+      h("button", { type: "button", class: "btn" + (scope === "active" ? " on" : ""), "aria-pressed": String(scope === "active"), onclick: () => setScope("active") }, "Active"),
+      h("button", { type: "button", class: "btn" + (scope === "all" ? " on" : ""), "aria-pressed": String(scope === "all"), onclick: () => setScope("all") }, "All"));
+  }
+  return h("header", { class: "top" },
+    h("div", {},
+      h("div", { class: "brand" }, "CVForge"),
+      h("h1", {}, view === "people" ? "People" : "Applications"),
+      h("div", { class: "small muted" }, "Generated " + DATA.generated + " · " + DATA.count + " dossiers · reload after `cvforge dashboard` or any change through Claude")),
+    nav);
+}
+
+function setScope(value) {
+  scope = value;
+  try { localStorage.setItem("cvforge-scope", value); } catch (e) { /* not kept */ }
+  render();
+}
+
+// ─── Overview ────────────────────────────────────────────────────────────────
+
+function overview() {
+  const apps = DATA.applications;
+  const kpis = h("section", { class: "kpis" }, DATA.kpis.map((k) => h("div", { class: "kpi" }, h("b", {}, k.value), h("span", {}, k.label))));
+
+  const next = h("section", { class: "card" }, h("h2", {}, "Next up"),
+    DATA.next_up.length ? DATA.next_up.map((e) => h("div", { class: "item when" },
+      h("div", {}, h("b", {}, e.day), h("span", { class: "small muted" }, e.time)),
+      h("div", { class: "row", style: "align-items: flex-start; flex-direction: column; gap: 6px" },
+        h("div", { class: "row", style: "align-items: baseline" },
+          kindTag(e), h("a", { href: appHref(e.slug) }, e.company),
+          e.track_label ? h("span", { class: "trk" }, e.track_label) : null,
+          h("span", { class: "muted", style: "font-size: 14px" }, e.event)),
+        e.people.length ? h("div", { class: "row", style: "gap: 6px" }, e.people.map(person)) : null)))
+      : h("p", { class: "empty" }, "Nothing planned. Planned entries in a dossier's timeline show up here."));
+
+  const flags = h("section", { class: "card" }, h("h2", {}, "Needs attention"),
+    DATA.attention.length ? DATA.attention.map((a) => h("div", { class: "item flag" },
+      h("span", { class: "dot" + (a.tone === "warn" ? " warn" : "") }),
+      h("div", {}, h("a", { href: appHref(a.slug) }, a.company), h("p", { style: "font-size: 14px; color: var(--ink-2)" }, a.text))))
+      : h("p", { class: "empty" }, "Nothing overdue, nobody waiting too long."));
+
+  const columns = scope === "all" ? DATA.columns.concat(DATA.other_columns) : DATA.columns;
+  const board = h("div", { class: "board" }, columns.map((status) => {
+    const cards = apps.filter((a) => a.status === status);
+    return h("div", { class: "column" },
+      h("div", { class: "column-head" }, pill(status), h("span", { class: "small muted" }, cards.length)),
+      cards.length ? cards.map(tile) : h("div", { class: "placeholder" }, "Nothing here yet"));
+  }));
+  const closed = apps.filter((a) => DATA.other_columns.includes(a.status));
+  const closedRow = scope === "active" && closed.length
+    ? h("div", { class: "closed" }, h("span", { style: "font-size: 14px; font-weight: 600" }, "Not active · " + closed.length),
+      closed.map((a) => h("a", { href: appHref(a.slug), title: a.status + " · " + a.title }, a.company)))
+    : null;
+
+  const pipeline = h("section", { class: "stack" },
+    h("div", { class: "split" }, h("h2", {}, "Pipeline"), h("span", { class: "small muted" }, "Most recent activity first")),
+    board, closedRow);
+
+  return [header("overview"), kpis, h("section", { class: "pair" }, next, flags), pipeline, strip()];
+}
+
+function tile(a) {
+  return h("a", { class: "tile", href: appHref(a.slug) },
+    h("span", { class: "co" }, a.company),
+    h("span", { class: "ti" }, a.title),
+    h("span", { class: "small muted" }, a.meta),
+    a.tracks.length ? h("div", { class: "tracks" }, a.tracks.map((t) =>
+      h("div", {}, h("span", {}, "↳ " + t.label), pill(t.status)))) : null,
+    a.next ? h("span", { class: "next tone-" + a.next.tone }, a.next.text) : null);
+}
+
+function strip() {
+  const s = DATA.strip;
+  const pos = (left) => "left: " + left + "%";
+  const axis = h("div", { class: "axis" },
+    s.ticks.map((t) => h("span", { style: pos(t.left) }, t.label)),
+    h("span", { style: pos(s.today) + "; font-weight: 600; color: var(--ink)" }, "today"));
+  const rows = s.rows.map((r) => h("div", { class: "strip-row" },
+    h("div", { style: "min-width: 0; padding: 6px 0" }, h("a", { href: appHref(r.slug) }, r.name), h("span", { class: "tiny muted" }, r.sub)),
+    h("div", { class: "lane" },
+      h("span", { class: "base" }),
+      h("span", { class: "today", style: pos(s.today) }),
+      h("span", { class: "span", style: pos(r.from) + "; width: " + r.width + "%" }),
+      r.dots.map((d) => h("span", { class: "pip " + d.look, style: pos(d.left), title: d.title })))));
+  return h("section", { class: "card", style: "gap: 12px" },
+    h("div", { class: "split" }, h("h2", {}, "Activity"),
+      h("div", { class: "legend" },
+        h("span", {}, h("span", { class: "pip" }), "happened"),
+        h("span", {}, h("span", { class: "pip planned" }), "planned"),
+        h("span", {}, h("span", { class: "pip overdue" }), "planned, day passed, not logged"))),
+    rows.length ? h("div", { class: "scroll" }, h("div", { class: "strip" }, h("div", { class: "strip-row" }, h("span"), axis), rows))
+      : h("p", { class: "empty" }, "No active applications."));
+}
+
+// ─── One application ─────────────────────────────────────────────────────────
+
+function detail(slug) {
+  const a = APPS[slug];
+  if (!a) return [header("detail"), h("p", {}, "No application " + slug + ". ", h("a", { href: "#/" }, "Back to the overview"))];
+  if (!(slug in opened)) {
+    const first = a.events.find((e) => !e.planned && e.notes.length);
+    opened[slug] = new Set(first ? [first.id] : []);
+  }
+  const open = opened[slug];
+
+  const links = h("div", { class: "row" },
+    a.posting.archive ? h("a", { class: "btn", href: a.posting.archive }, "Archived posting") : null,
+    a.posting.url ? h("a", { class: "btn", href: a.posting.url, target: "_blank", rel: "noopener" }, "Posting online") : null,
+    a.submission.url ? h("a", { class: "btn", href: a.submission.url, target: "_blank", rel: "noopener" }, "Application portal") : null,
+    h("a", { class: "btn", href: a.folder }, "Open folder"));
+
+  const head = h("header", { class: "card head" },
+    h("div", { class: "row" }, pill(a.status),
+      h("span", { class: "small muted" }, [a.slug, a.lang && a.lang.toUpperCase(), a.tailored_cv ? "tailored CV" : "base CV"].filter(Boolean).join(" · "))),
+    h("div", {}, h("h1", {}, a.title || a.slug), h("div", { class: "company" }, a.company)),
+    a.facts.length ? h("div", { class: "facts" }, a.facts.map((f) => h("span", {}, f))) : null,
+    links,
+    a.next ? h("div", { class: "banner tone-" + a.next.tone }, h("b", {}, "Next"), h("span", {}, a.next.text)) : null);
+
+  const tracks = a.tracks.length ? h("section", { class: "trackcards" }, a.tracks.map((t) =>
+    h("div", { class: "trackcard" },
+      h("div", { class: "split", style: "align-items: center" }, h("b", {}, t.label), pill(t.status)),
+      t.title && t.title !== t.label ? h("span", { class: "small", style: "color: var(--ink-2)" }, t.title) : null,
+      t.location ? h("span", { class: "tiny muted" }, t.location) : null,
+      t.notes.length ? h("div", { style: "margin-top: 6px" }, prose(t.notes)) : null))) : null;
+
+  const timeline = h("main", {},
+    h("div", { class: "split" }, h("h2", {}, "Timeline"), h("span", { class: "small muted" }, "Newest first · select an event for its notes")),
+    h("div", {}, a.events.map((e) => event(e, open))));
+
+  const aside = h("aside", {}, people(a), files(a), about(a), approach(a), posting(a), notes(a));
+  return [h("a", { class: "back", href: "#/" }, "← All applications"), head, tracks, h("div", { class: "columns" }, timeline, aside)];
+}
+
+function event(e, open) {
+  const isOpen = open.has(e.id);
+  const hasNotes = e.notes.length > 0;
+  const toggle = () => { isOpen ? open.delete(e.id) : open.add(e.id); render(); };
+  const headBits = [
+    h("span", { class: "row" },
+      kindTag(e),
+      e.channel ? h("span", { class: "channel" }, e.channel) : null,
+      e.track_label ? h("span", { class: "trk" }, e.track_label) : null,
+      h("span", { class: "ev-title" }, e.event),
+      hasNotes ? h("span", { class: "tiny muted" }, isOpen ? "hide notes ▴" : "notes ▾") : null),
+    e.people.length ? h("span", { class: "row", style: "gap: 6px" }, h("span", { class: "tiny muted" }, "with"), e.people.map(person)) : null,
+  ];
+  const head = hasNotes
+    ? h("button", { type: "button", class: "ev-head", "aria-expanded": String(isOpen), onclick: toggle }, headBits)
+    : h("div", { class: "ev-head" }, headBits);
+  const filesRow = e.files.length ? h("div", { class: "row", style: "padding: 0 14px 12px" }, e.files.map((f) => h("a", { class: "small", href: f.href }, f.name))) : null;
+  return h("div", { class: "ev" + (e.planned ? " planned" : "") + (e.overdue ? " overdue" : "") },
+    h("div", { class: "ev-date" }, h("b", {}, e.day), h("span", { class: "tiny muted" }, e.time)),
+    h("div", { class: "ev-rail" }, h("span", { class: "ev-node" })),
+    h("div", { class: "ev-body" }, h("div", { class: "ev-card" }, head, filesRow,
+      hasNotes && isOpen ? h("div", { class: "ev-notes" }, prose(e.notes)) : null)));
+}
+
+function contactCard(c, extra) {
+  const tel = c.phone ? "tel:" + c.phone.replace(/[^+\d]/g, "") : null;
+  return h("div", { class: "item contact" },
+    h("span", { class: "avatar big", "aria-hidden": "true" }, c.initials),
+    h("div", { class: "who" },
+      h("span", { class: "name" }, c.name),
+      c.role ? h("span", { class: "small", style: "color: var(--ink-2)" }, c.role) : null,
+      h("span", { class: "small muted" }, c.org + " · " + c.activity),
+      extra || null,
+      c.notes.length ? h("div", { class: "small" }, prose(c.notes)) : null,
+      c.email || c.phone ? h("span", { class: "row small", style: "gap: 12px" },
+        c.email ? h("a", { href: "mailto:" + c.email }, c.email) : null,
+        c.phone ? h("a", { href: tel }, c.phone) : null) : null));
+}
+
+function people(a) {
+  return h("section", { class: "card" }, h("h2", {}, "People"),
+    a.contacts.length ? a.contacts.map((c) => contactCard(c)) : h("p", { class: "empty" }, "No contacts recorded."));
+}
+
+function files(a) {
+  return h("section", { class: "card files", style: "gap: 10px" }, h("h2", {}, "Files"),
+    a.files.map((g) => h("div", {}, h("div", { class: "label" }, g.label), g.files.map((f) => h("a", { href: f.href }, f.name)))));
+}
+
+function about(a) {
+  if (!a.summary && !a.about && !a.keywords.length) return null;
+  return h("section", { class: "card", style: "gap: 10px" }, h("h2", {}, "The job"),
+    a.summary ? h("p", { class: "prose" }, a.summary) : null,
+    a.about ? h("p", { class: "prose" }, a.about) : null,
+    a.keywords.length ? h("div", { class: "row", style: "gap: 6px" }, a.keywords.map((k) => h("span", { class: "kw" }, k))) : null);
+}
+
+function approach(a) {
+  const p = a.approach;
+  if (!p.angle && !p.cv.length && !p.gaps.length) return null;
+  const list = (items) => h("ul", { class: "prose", style: "padding-left: 18px" }, items.map((i) => h("li", {}, i)));
+  return h("section", { class: "card", style: "gap: 10px" }, h("h2", {}, "Approach"),
+    p.angle ? h("p", { class: "prose" }, p.angle) : null,
+    p.cv.length ? [h("div", { class: "label" }, "CV changes"), list(p.cv)] : null,
+    p.gaps.length ? [h("div", { class: "label" }, "Gaps"), list(p.gaps)] : null,
+    p.based_on ? h("span", { class: "small muted" }, "Based on ", APPS[p.based_on] ? h("a", { href: appHref(p.based_on) }, APPS[p.based_on].company) : p.based_on) : null);
+}
+
+function posting(a) {
+  const p = a.posting;
+  const qs = a.submission.questions;
+  if (!p.notes.length && !qs.length && !p.deadline) return null;
+  return h("section", { class: "card", style: "gap: 10px" }, h("h2", {}, "Posting"),
+    p.fetched || p.deadline ? h("span", { class: "small muted" }, [p.fetched && "archived " + p.fetched, p.deadline && "closes " + p.deadline].filter(Boolean).join(" · ")) : null,
+    p.notes.length ? prose(p.notes) : null,
+    qs.length ? [h("div", { class: "label" }, "Portal questions"), qs.map((q) => h("div", { class: "prose" }, h("p", {}, h("b", {}, q.question)), h("p", {}, q.answer || "—")))] : null);
+}
+
+function notes(a) {
+  return a.notes.length ? h("section", { class: "card", style: "gap: 10px" }, h("h2", {}, "Notes"), prose(a.notes)) : null;
+}
+
+// ─── People ──────────────────────────────────────────────────────────────────
+
+function peopleView() {
+  return [header("people"), DATA.people.length ? DATA.people.map((g) =>
+    h("section", { class: "card" }, h("h2", {}, g.org),
+      g.people.map((c) => contactCard(c, h("a", { class: "app-link", href: appHref(c.slug) }, c.application)))))
+    : h("p", { class: "empty" }, "No contacts in any dossier yet.")];
+}
+
+// ─── Routing ─────────────────────────────────────────────────────────────────
+
+function render() {
+  if (!DATA) { root.replaceChildren(h("p", {}, "No data - run `cvforge dashboard`.")); return; }
+  const route = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
+  let view;
+  if (route.startsWith("app/")) view = detail(route.slice(4));
+  else if (route === "people") view = peopleView();
+  else view = overview();
+  root.replaceChildren(...view.flat().filter(Boolean));
+}
+
+let lastRoute = location.hash;
+window.addEventListener("hashchange", () => {
+  render();
+  if (location.hash !== lastRoute) window.scrollTo(0, 0);
+  lastRoute = location.hash;
+});
+render();
+</script>
+</body>
+</html>

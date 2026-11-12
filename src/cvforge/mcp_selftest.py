@@ -203,6 +203,65 @@ async def _run(home: Path) -> list[tuple[str, bool, str]]:
             "edit_file", slug=SLUG, file="letter", edits=[{"old": "Scratch Corp", "new": "X"}]
         )
         check("edit refused once sent", err, text)
+
+        # People, a track, and a planned entry that later happens.
+        people = [{"name": "Ada Probe", "role": "HR"}, {"name": "Kurt Test", "org": "Kunde"}]
+        err, text = await call("update_dossier", slug=SLUG, patch={"contacts": people})
+        check("contacts added once sent", not err, text)
+        err, text = await call("update_dossier", slug=SLUG, patch={"tracks": []})
+        check("update_dossier refuses tracks", err, text)
+        err, text = await call("log_event", slug=SLUG, date="2026-11-04", event="X", track="kunde")
+        check("unknown track refused", err, text)
+        err, text = await call(
+            "set_track", slug=SLUG, track="kunde", status="proposed", company="Kunde GmbH"
+        )
+        check("set_track", not err, text)
+        err, text = await call(
+            "log_event",
+            slug=SLUG,
+            date="2099-01-05",
+            time="10:00-11:00",
+            kind="interview",
+            channel="video",
+            participants=["Kurt Test"],
+            track="kunde",
+            planned=True,
+            event="Interview at the client",
+            track_status="interview",
+        )
+        got = json.loads(text) if not err else {}
+        tracks = (got.get("dossier") or {}).get("tracks") or [{}]
+        check("planned event logged", tracks[0].get("status") == "interview", text)
+        err, text = await call(
+            "log_event", slug=SLUG, date="2026-11-03", participants=["Nobody"], event="A call"
+        )
+        got = json.loads(text) if not err else {}
+        warned = any("'Nobody' is not in contacts" in w for w in got.get("warnings", []))
+        check("unknown participant warned", warned, text)
+        err, text = await call("update_event", slug=SLUG, date="2099-01-05", match="nothing")
+        check("update_event needs exactly one match", err, text)
+        err, text = await call(
+            "update_event",
+            slug=SLUG,
+            date="2099-01-05",
+            match="client",
+            new_date="2026-11-05",
+            planned=False,
+            event="Interview at the client, went well",
+            notes="- asked about tests\n- next round in two weeks",
+        )
+        got = json.loads(text) if not err else {}
+        timeline = (got.get("dossier") or {}).get("timeline") or []
+        done = [e for e in timeline if e.get("date") == "2026-11-05"]
+        completed = bool(done) and "planned" not in done[0] and "next round" in done[0]["notes"]
+        check("planned event completed", completed, text)
+        dates = [e["date"] for e in timeline]
+        check("timeline in date order", dates == sorted(dates), ", ".join(dates))
+        page = home / "dashboard.html"
+        html = page.read_text("utf-8") if page.is_file() else ""
+        seen.append(html)  # the leak test below covers the page too
+        check("dashboard rewritten", "went well" in html and "Kurt Test" in html)
+
         err, text = await call(
             "log_event", slug=SLUG, date="2026-11-10", event="No", status="rejected"
         )

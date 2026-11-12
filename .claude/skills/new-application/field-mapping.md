@@ -67,9 +67,9 @@ and is listed as `{file: "attachments/<name>", label: "<label>"}`.
 | Lücken | `approach.gaps` - one item each, with how the letter handles it if it does |
 | Bewerbung | `submission.method` (`portal`/`email`/`post`), `submission.url` if it differs from `posting.url` |
 | Portalfragen | `submission.questions: [{question, answer}]` - verbatim, `answer: null` where the user fills it in |
-| Ansprechpartner with contact details | `contacts: [{name, role, email, phone, notes}]`. None → `contacts: []`. |
+| Ansprechpartner with contact details | `contacts: [{name, role, email, phone, notes}]` - `notes` only for facts about the person (Du/Sie, how to reach them). None → `contacts: []`. |
 | - | `status: draft`, `applied: null` - the user sets both when it goes out |
-| - | `timeline`: keep the "Created" entry `new` wrote, add `{date: "<today>", event: "Built with cvforge from brief.md"}` |
+| - | `timeline`: keep the "Created" entry `new` wrote, add `{date: "<today>", kind: build, event: "Built with cvforge from brief.md"}` |
 | Hinweise, anything else | `notes` - a `>` block |
 | a looked-up address | `notes` - one line: "Address looked up <date>: <address> - source <URL> (<how current>)". |
 

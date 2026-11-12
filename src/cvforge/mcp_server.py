@@ -21,8 +21,12 @@ independent layers keep private.yaml out of it:
 
 The tools split into read-only, drafting (refuse once an application is sent;
 `remember` excepted - an outcome is learned after sending) and decisive
-(`apply`, `mark_sent`, `log_event`) - the last group is where Claude Desktop's
-per-tool approval is the user's confirmation.
+(`apply`, `mark_sent`, `log_event`, `update_event`, `set_track`) - the last
+group is where Claude Desktop's per-tool approval is the user's confirmation.
+
+Every tool that writes also rewrites <home>/dashboard.html (dashboard.py), so
+the page the user reads never lags behind the dossiers. Its content stays on
+this machine; no tool returns it.
 """
 
 from __future__ import annotations
@@ -49,14 +53,48 @@ from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString, LiteralScalarString
 
 from . import check as check_mod
-from . import guidance, letter, paths, posting, resolve, service
+from . import dashboard, guidance, letter, paths, posting, resolve, service
 
 SLUG_RE = re.compile(r"^\d{4}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-# Set only by `mark_sent` and `log_event`, so that recording a submission is
-# always its own call - one Claude Desktop asks you to approve.
-DOSSIER_GUARDED = frozenset({"status", "applied", "timeline"})
+# Set only by `mark_sent`, `log_event`, `update_event` and `set_track`, so that
+# recording a submission or news is always its own call - one Claude Desktop
+# asks you to approve.
+DOSSIER_GUARDED = frozenset({"status", "applied", "timeline", "tracks"})
+
+EventKind = Literal[
+    "build",
+    "submitted",
+    "email",
+    "call",
+    "interview",
+    "assessment",
+    "trial-day",
+    "feedback",
+    "offer",
+    "rejection",
+    "other",
+]
+Channel = Literal["phone", "video", "email", "onsite", "portal", "post"]
+Status = Literal["screening", "interview", "offer", "rejected", "withdrawn"]
+TrackStatus = Literal[
+    "proposed", "applied", "screening", "interview", "offer", "rejected", "withdrawn", "moved"
+]
+# The order a timeline entry's keys are written in, whoever wrote it.
+EVENT_KEYS = (
+    "date",
+    "time",
+    "kind",
+    "channel",
+    "with",
+    "track",
+    "planned",
+    "approx",
+    "event",
+    "notes",
+    "files",
+)
 
 INSTRUCTIONS = """\
 CVForge builds job applications (cover letter + CV + certificates) for the user
@@ -97,6 +135,26 @@ Workflow for a new posting:
    the user the folder path; they review the real PDFs themselves.
 6. mark_sent only when the user says it was submitted. log_event for later
    news (screening, interview, rejection, offer).
+
+Recording what happens - the user reads it on a local dashboard that is
+rebuilt after every change, so complete entries matter:
+- One timeline entry per event (log_event) with kind, channel, time and
+  `participants`: the names exactly as in the dossier's contacts. Add a new
+  person with update_dossier first (contacts is a list - send all of them).
+- What was said goes in that entry's `notes` (Markdown, "- " for lists) - not
+  in the dossier notes and not in a contact's notes. A contact's notes hold
+  facts about the person only: Du or Sie, background, how to reach them. The
+  dossier notes hold what concerns the application as a whole.
+- Anything ahead - an interview, a deadline, a promised call or answer - is
+  its own entry with planned: true, and approx: true when the date is an
+  estimate (use the earliest likely day). When it has happened, update_event
+  that entry (planned false, the real date, the outcome, the notes) instead
+  of adding a second one. Ask the user about a planned entry whose day has
+  passed.
+- A placement agency's client process, or another posting the company moved
+  the user to, is a track (set_track) with its own status; its entries carry
+  `track`. The application's status stays the relationship with the company
+  applied to.
 
 Where things are: the dossier is the record - status, dates, contacts, file
 names. A brief.md is the frozen hand-over an application was first built
@@ -158,6 +216,8 @@ def tool(annotations: ToolAnnotations, *, with_log: bool = False):
                         raise resolve.ResolveError(paths.HOME_PROBLEM)
                     with contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
                         result = fn(*args, **kwargs)
+                        if annotations is not READ:
+                            dashboard.refresh()
                 except ToolError as exc:
                     raise ToolError(_guard(str(exc))) from None
                 except resolve.ResolveError as exc:
@@ -267,6 +327,69 @@ def _append(entries: list, entry: dict) -> None:
         if trailing:
             entry.ca.items[list(entry)[-1]] = trailing
     entries.append(entry)
+
+
+def _trailing(entry: Any) -> Any:
+    """The comment token after an entry's last key - the blank line that
+    separates the timeline from the next section, when it is the last entry."""
+    if isinstance(entry, CommentedMap) and entry:
+        return entry.ca.items.get(list(entry)[-1])
+    return None
+
+
+def _event(fields: dict) -> CommentedMap:
+    """A timeline entry in EVENT_KEYS order, without the keys left empty."""
+    kept = {k: fields[k] for k in EVENT_KEYS if fields.get(k) not in (None, "", [], False)}
+    return CommentedMap(_yaml_value(kept))
+
+
+def _insert_sorted(entries: list, entry: CommentedMap) -> None:
+    """Into date order, after everything on the same day or earlier - so a
+    late-logged event does not land behind a planned one."""
+    position = len(entries)
+    while position and str(entries[position - 1].get("date")) > entry["date"]:
+        position -= 1
+    if position == len(entries):
+        _append(entries, dict(entry))
+    else:
+        entries.insert(position, entry)
+
+
+def _remove(entries: list, index: int) -> None:
+    trailing = _trailing(entries[index])
+    del entries[index]
+    if trailing and index == len(entries) and entries:
+        last = entries[-1]
+        if isinstance(last, CommentedMap) and last:
+            last.ca.items[list(last)[-1]] = trailing
+
+
+def _track_ids(data: dict) -> list[str]:
+    return [t["id"] for t in data.get("tracks") or []]
+
+
+def _check_event(data: dict, track: str | None, track_status: str | None, files) -> None:
+    if track and track not in _track_ids(data):
+        raise ToolError(f"no track {track!r} - add it with set_track first")
+    if track_status and not track:
+        raise ToolError("track_status needs the track it applies to")
+    for rel in files or []:
+        if Path(rel).is_absolute() or ".." in Path(rel).parts:
+            raise ToolError(f"files: {rel!r} must be relative to the application directory")
+
+
+def _apply_status(data: dict, status: str | None, track: str | None, track_status: str | None):
+    if status:
+        data["status"] = status
+    if track_status:
+        for t in data["tracks"]:
+            if t["id"] == track:
+                t["status"] = track_status
+
+
+def _timeline_warnings(slug: str, data: dict) -> list[str]:
+    """`check`'s timeline warnings for this dossier: unknown names, overdue entries."""
+    return check_mod._check_timeline(slug, json.loads(json.dumps(data, default=str)))
 
 
 def _write_dossier(slug: str, change) -> dict:
@@ -582,11 +705,14 @@ def update_dossier(slug: str, patch: dict) -> dict:
     """Merge `patch` into dossier.yaml (nested objects merge, lists and values
     replace) and validate it. For summary, keywords, company, role, posting,
     approach, submission, contacts, notes - see get_reference('dossier_schema').
-    status, applied and timeline are set by mark_sent and log_event instead."""
+    status, applied, timeline and tracks are set by mark_sent, log_event,
+    update_event and set_track instead."""
     _slug(slug)
     guarded = DOSSIER_GUARDED & set(patch)
     if guarded:
-        raise ToolError(f"{', '.join(sorted(guarded))}: use mark_sent or log_event")
+        raise ToolError(
+            f"{', '.join(sorted(guarded))}: use mark_sent, log_event, update_event or set_track"
+        )
     return {"dossier": _write_dossier(slug, lambda data: _merge(data, patch))}
 
 
@@ -672,7 +798,8 @@ def mark_sent(
             patch["submission"] = {"method": method}
         _merge(data, patch)
         event = "Submitted" + (f" via {method}" if method else "") + (f" - {note}" if note else "")
-        _append(data.setdefault("timeline", []), {"date": date, "event": event})
+        entry = {"date": date, "kind": "submitted", "channel": method, "event": event}
+        _insert_sorted(data.setdefault("timeline", []), _event(entry))
 
     return {"dossier": _write_dossier(slug, change)}
 
@@ -682,18 +809,152 @@ def log_event(
     slug: str,
     date: str,
     event: str,
-    status: Literal["screening", "interview", "offer", "rejected", "withdrawn"] | None = None,
+    kind: EventKind | None = None,
+    time: str | None = None,
+    channel: Channel | None = None,
+    participants: list[str] | None = None,
+    notes: str | None = None,
+    planned: bool = False,
+    approx: bool = False,
+    track: str | None = None,
+    files: list[str] | None = None,
+    status: Status | None = None,
+    track_status: TrackStatus | None = None,
 ) -> dict:
-    """Add a timeline entry - an interview invitation, a rejection, an offer -
-    and optionally set the new status. `date` is YYYY-MM-DD."""
+    """Add a timeline entry - an invitation, a call, an interview, a rejection,
+    an offer, or with planned=true something still ahead - and optionally set
+    the application's new status (or, with track, that track's track_status).
+
+    date: YYYY-MM-DD, the day it happened (planned: the day it will; approx=true
+    when that is an estimate). time: "HH:MM" or "HH:MM-HH:MM". event: one line.
+    participants: names exactly as in the dossier's contacts - the user is
+    never listed. notes: what was said and agreed, Markdown with "- " lists.
+    files: paths relative to the application, e.g. recv/form_signed.pdf.
+    Returns warnings, e.g. a participant who is not a contact yet."""
     _slug(slug)
     if not DAY_RE.match(date):
         raise ToolError("date must be YYYY-MM-DD")
 
     def change(data: dict) -> None:
-        _append(data.setdefault("timeline", []), {"date": date, "event": event})
-        if status:
-            data["status"] = status
+        _check_event(data, track, track_status, files)
+        entry = {
+            "date": date,
+            "time": time,
+            "kind": kind,
+            "channel": channel,
+            "with": participants,
+            "track": track,
+            "planned": planned,
+            "approx": approx,
+            "event": event,
+            "notes": notes,
+            "files": files,
+        }
+        _insert_sorted(data.setdefault("timeline", []), _event(entry))
+        _apply_status(data, status, track, track_status)
+
+    written = _write_dossier(slug, change)
+    return {"dossier": written, "warnings": _timeline_warnings(slug, written)}
+
+
+@tool(DECISIVE)
+def update_event(
+    slug: str,
+    date: str,
+    match: str,
+    new_date: str | None = None,
+    event: str | None = None,
+    kind: EventKind | None = None,
+    time: str | None = None,
+    channel: Channel | None = None,
+    participants: list[str] | None = None,
+    notes: str | None = None,
+    planned: bool | None = None,
+    approx: bool | None = None,
+    track: str | None = None,
+    files: list[str] | None = None,
+    status: Status | None = None,
+    track_status: TrackStatus | None = None,
+) -> dict:
+    """Change one timeline entry - above all a planned one that has now
+    happened: planned=false, new_date the day it happened, event what
+    happened, notes what was said. The entry is the one on `date` whose event
+    contains `match` (case-insensitive); exactly one must. Parameters left out
+    keep their value; given ones replace it (notes and participants too - read
+    the entry first and pass the whole new text). "" clears time, notes or
+    track. Optionally sets the status, like log_event."""
+    _slug(slug)
+    for day in (date, new_date):
+        if day is not None and not DAY_RE.match(day):
+            raise ToolError("dates must be YYYY-MM-DD")
+
+    def change(data: dict) -> None:
+        entries = data.get("timeline") or []
+        found = [
+            i
+            for i, e in enumerate(entries)
+            if str(e.get("date")) == date and match.casefold() in str(e.get("event")).casefold()
+        ]
+        if len(found) != 1:
+            raise ToolError(
+                f"{len(found)} entries on {date} contain {match!r} - it must be exactly one"
+            )
+        effective = track if track is not None else entries[found[0]].get("track")
+        _check_event(data, effective or None, track_status, files)
+        given = {
+            "date": new_date,
+            "time": time,
+            "kind": kind,
+            "channel": channel,
+            "with": participants,
+            "track": track,
+            "planned": planned,
+            "approx": approx,
+            "event": event,
+            "notes": notes,
+            "files": files,
+        }
+        fields = {**dict(entries[found[0]]), **{k: v for k, v in given.items() if v is not None}}
+        _remove(entries, found[0])
+        _insert_sorted(entries, _event(fields))
+        _apply_status(data, status, fields.get("track") or None, track_status)
+
+    written = _write_dossier(slug, change)
+    return {"dossier": written, "warnings": _timeline_warnings(slug, written)}
+
+
+@tool(DECISIVE)
+def set_track(
+    slug: str,
+    track: str,
+    status: TrackStatus,
+    company: str | None = None,
+    title: str | None = None,
+    location: str | None = None,
+    notes: str | None = None,
+) -> dict:
+    """Add or update a track: one process inside this application with its own
+    status - a client a placement agency proposed the user to, or another
+    posting the company moved them to. track: a short lowercase id (mbda).
+    On an existing track, parameters left out keep their value. Timeline
+    entries point at it with log_event(track=...)."""
+    _slug(slug)
+
+    def change(data: dict) -> None:
+        tracks = data.setdefault("tracks", [])
+        given = {
+            "company": company,
+            "title": title,
+            "location": location,
+            "status": status,
+            "notes": notes,
+        }
+        given = {k: v for k, v in given.items() if v is not None}
+        for existing in tracks:
+            if existing["id"] == track:
+                _merge(existing, given)
+                return
+        tracks.append(CommentedMap(_yaml_value({"id": track, **given})))
 
     return {"dossier": _write_dossier(slug, change)}
 

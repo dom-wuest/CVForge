@@ -624,8 +624,8 @@ uv run cvforge mcp-config      # prints the entry for this machine
 
 Paste the printed entry into Claude Desktop's config (Settings → Developer →
 Edit Config) and restart Claude Desktop. In its tool settings, set the
-read-only tools to *Always allow* and keep `apply`, `mark_sent` and `log_event`
-on *Ask* - those prompts are your confirmations. The laptop runs the same two
+read-only tools to *Always allow* and keep `apply`, `mark_sent`, `log_event`,
+`update_event` and `set_track` on *Ask* - those prompts are your confirmations. The laptop runs the same two
 commands after `git pull` and `cvforge home set`.
 
 ### What leaves your machine
@@ -660,10 +660,22 @@ from numbers ("3.5 mm left", "overflows 12 mm"), and you look at the PDFs.
 6. 🟩 Submit. 🟦 *"Submitted today."* → 🟧 approve `mark_sent`; `send/` is
    locked from then on.
 7. 🟦 Later: *"Interview invitation from X for the 14th"*, *"Rejection from
-   Y"* → 🟧 approve `log_event`.
+   Y"* → 🟧 approve `log_event`. The interview itself goes in as a planned
+   entry; afterwards, *"The interview went well, notes: …"* → 🟧 approve
+   `update_event`, which turns that entry into the record with your notes.
+   An agency's client process (*"they proposed me to Z"*) → 🟧 `set_track`.
 
 Any time, without prompts: *"Which applications are open?"*, *"What did I lead
 with for rendering jobs?"*
+
+### The dashboard
+
+`<home>/dashboard.html` shows every application in the browser: what is coming
+up, what needs attention, the pipeline, and per application the timeline with
+who took part, the notes from each call or interview, the people and the
+files. Claude rewrites it after every change; reload the tab. To build it by
+hand: `uv run cvforge dashboard --open`. It contains your contacts' details, so
+it stays in the home and is never published.
 
 To fit the letter on one page, Claude may shorten a subject line that wraps
 (dropping the reference number first, since it is printed beside the address

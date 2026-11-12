@@ -55,10 +55,30 @@ submission:
   url: null # the application link, if it is not posting.url
   questions: [] # - question: "Notice period?"  answer: "none"
 
-contacts: [] # - name: "...", role: "Recruiting", email: null, phone: null, notes: null
+# Facts about each person in `notes` (Du or Sie, background, how to reach
+# them); what happened with them goes in the timeline, under `with`. `org` only
+# when they work for someone else - the client an agency proposed you to.
+contacts: [] # - name: "...", role: "Recruiting", org: null, email: null, phone: null, notes: null
+
+# Separate processes inside this application, each with its own status: the
+# clients a placement agency proposes you to, or the posting a company moved
+# you to. Leave it empty for a normal application.
+tracks: [] # - id: acme, company: "...", title: "...", status: proposed | applied | screening | interview | offer | rejected | withdrawn | moved
 
 status: draft # draft | applied | screening | interview | offer | rejected | withdrawn
 
-timeline: [] # `cvforge new` adds the day it was created; add an entry per event
+# One entry per event, oldest first. An entry that has not happened yet - an
+# interview, a deadline, a promised answer - gets `planned: true`; when it
+# happens, update that entry instead of adding another.
+#   - date: "2026-11-12"
+#     time: "11:00-12:00"
+#     kind: interview # build | submitted | email | call | interview | assessment | trial-day | feedback | offer | rejection | other
+#     channel: video # phone | video | email | onsite | portal | post
+#     with: [Name From Contacts]
+#     track: null # a tracks id
+#     event: Technical interview, went well
+#     notes: |
+#       - what was asked, what was agreed, next steps
+timeline: [] # `cvforge new` adds the day it was created
 
 notes: null

@@ -26,6 +26,10 @@ applications/*
 # when the repository is the home; normally they live in the home.
 /guidance/
 
+# `cvforge dashboard`: every application with its contacts and notes on one
+# page. Here only when the repository is the home; normally it is in the home.
+/dashboard.html
+
 # ─── Editable diagram sources ───────────────────────────────────────────────
 # draw.io exports embed their whole editable mxfile in a PNG metadata chunk.
 # For resources/iVS3D_overview.png that chunk was 12.8MB against 240KB of

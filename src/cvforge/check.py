@@ -14,6 +14,7 @@ from __future__ import annotations
 import contextlib
 import io
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -298,7 +299,39 @@ def _check_dossier(slug: str, slugs: set[str]) -> list[str]:
     based_on = (data.get("approach") or {}).get("based_on")
     if based_on and based_on not in slugs:
         out.append(f"[{slug}] approach.based_on names no application {based_on!r}")
+    return out + _check_timeline(slug, data)
+
+
+def _check_timeline(slug: str, data: dict[str, Any]) -> list[str]:
+    """What breaks the links the dashboard draws: a participant who is not a
+    contact, a track that does not exist - and a planned entry whose day has
+    passed, which is an interview nobody wrote down."""
+    out: list[str] = []
+    names = {c["name"] for c in data.get("contacts") or []}
+    track_ids = [t["id"] for t in data.get("tracks") or []]
+    for tid in sorted({t for t in track_ids if track_ids.count(t) > 1}):
+        out.append(f"[{slug}] tracks: id {tid!r} is used more than once")
+
+    today = date.today().isoformat()
+    for entry in data.get("timeline") or []:
+        label = f"[{slug}] timeline {entry['date']} {_clip(entry['event'])!r}"
+        for name in entry.get("with") or []:
+            if name not in names:
+                out.append(f"{label}: {name!r} is not in contacts")
+        track = entry.get("track")
+        if track and track not in track_ids:
+            out.append(f"{label}: no track {track!r}")
+        for rel in entry.get("files") or []:
+            if not (paths.application(slug) / rel).is_file():
+                out.append(f"{label}: file {rel!r} does not exist")
+        if entry.get("planned") and entry["date"] < today:
+            out.append(f"{label} was planned and its day has passed - what happened?")
     return out
+
+
+def _clip(text: str, width: int = 40) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= width else text[: width - 1] + "…"
 
 
 def _document_pool() -> dict[str, Any]:

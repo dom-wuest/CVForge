@@ -241,6 +241,13 @@
               "null"
             ]
           },
+          "org": {
+            "description": "Who they work for, when it is not the company itself - the client a placement agency proposed you to, or another office of it. Omit for the company's own people.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "email": {
             "type": [
               "string",
@@ -254,6 +261,65 @@
             ]
           },
           "notes": {
+            "description": "Facts about the person - Du or Sie, background, how to reach them. What happened with them belongs in the timeline, with their name under `with`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "tracks": {
+      "description": "Separate processes inside one application, each with its own status: the clients a placement agency proposes you to, or the posting a company moved you to. Omit when there is only the one process. The application's own `status` stays the relationship with the company you applied to.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "description": "Short and lowercase, e.g. mbda. Timeline entries name it under `track`.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "company": {
+            "description": "Who this process is with - the client, or the company itself for a changed posting.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "proposed: an agency put you forward and nothing came back yet. moved: the company continues with you on another track.",
+            "enum": [
+              "proposed",
+              "applied",
+              "screening",
+              "interview",
+              "offer",
+              "rejected",
+              "withdrawn",
+              "moved"
+            ]
+          },
+          "notes": {
+            "description": "What this process is: the role, the terms, the client.",
             "type": [
               "string",
               "null"
@@ -275,7 +341,7 @@
       ]
     },
     "timeline": {
-      "description": "What happened when. Free-form entries, newest last.",
+      "description": "What happened when, oldest first - and, with `planned: true`, what is coming. When a planned entry happens, update that entry rather than adding a second one.",
       "type": "array",
       "items": {
         "type": "object",
@@ -289,9 +355,96 @@
             "type": "string",
             "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
           },
+          "time": {
+            "description": "\"HH:MM\" or \"HH:MM-HH:MM\".",
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9](-([01][0-9]|2[0-3]):[0-5][0-9])?$"
+          },
+          "kind": {
+            "description": "build: CVForge created or rebuilt it. feedback: news or a decision expected from them, channel unknown.",
+            "enum": [
+              "build",
+              "submitted",
+              "email",
+              "call",
+              "interview",
+              "assessment",
+              "trial-day",
+              "feedback",
+              "offer",
+              "rejection",
+              "other",
+              null
+            ]
+          },
+          "channel": {
+            "enum": [
+              "phone",
+              "video",
+              "email",
+              "onsite",
+              "portal",
+              "post",
+              null
+            ]
+          },
+          "with": {
+            "description": "Who took part, by their name in `contacts`. You are always there and never listed.",
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "track": {
+            "description": "The `tracks` id this entry belongs to. Omit for the application as a whole.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "planned": {
+            "description": "Not happened yet: an appointment, a deadline, an answer you were promised. `cvforge check` warns once the date has passed.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "approx": {
+            "description": "The date is an estimate - \"Friday or next week\", \"in about three weeks\". Use the earliest likely day.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "event": {
+            "description": "One line: what happened.",
             "type": "string",
             "minLength": 1
+          },
+          "notes": {
+            "description": "What was said and agreed - interview notes, terms, next steps. Markdown; lines starting with \"- \" become a list.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "files": {
+            "description": "Files this entry is about - documents received or returned - relative to the application directory, e.g. recv/questionnaire_signed.pdf.",
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }

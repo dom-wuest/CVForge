@@ -109,6 +109,13 @@ PRIVATE = HOME / "private.yaml" if HOME else DATA / "private.yaml"
 # the repository is the home). See guidance.py.
 GUIDANCE = (HOME or ROOT) / "guidance"
 
+# Every application on one local page, rebuilt from the dossiers. Beside
+# applications/ so its links are relative to the home and work on every machine
+# that syncs it; it holds recruiters' details, so never anywhere it could be
+# published (gitignored when the repository is the home). See dashboard.py.
+DASHBOARD = (HOME or ROOT) / "dashboard.html"
+DASHBOARD_TEMPLATE = ROOT / "templates" / "dashboard" / "dashboard.html"
+
 SCHEMA = ROOT / "schema"
 CV_SCHEMA = SCHEMA / "cv.schema.json"
 LETTER_SCHEMA = SCHEMA / "letter.schema.json"

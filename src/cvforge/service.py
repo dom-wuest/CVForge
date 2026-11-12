@@ -587,7 +587,10 @@ def new_application(
     if example.is_file():
         # The one fact known now: the day it was started. `cvforge list` falls
         # back to it for an application that has not been sent yet.
-        created = f'timeline:\n  - date: "{date.today().isoformat()}"\n    event: "Created"\n'
+        created = (
+            f'timeline:\n  - date: "{date.today().isoformat()}"\n'
+            f'    kind: build\n    event: "Created"\n'
+        )
         text = example.read_text(encoding="utf-8")
         text = re.sub(r"^timeline: \[\].*\n", created, text, count=1, flags=re.MULTILINE)
         if from_slug:

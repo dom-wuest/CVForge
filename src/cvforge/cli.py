@@ -12,11 +12,12 @@ import json
 import os
 import shutil
 import sys
+import webbrowser
 from pathlib import Path
 
 from . import check as check_mod
+from . import dashboard, i18n, letter, paths, resolve, service
 from . import home as home_mod
-from . import i18n, letter, paths, resolve, service
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Commands
@@ -244,6 +245,14 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dashboard(args: argparse.Namespace) -> int:
+    target = dashboard.write()
+    print(f"  wrote {paths.display(target)}  (local only - it holds your contacts' details)")
+    if args.open:
+        webbrowser.open(target.as_uri())
+    return 0
+
+
 def cmd_home(args: argparse.Namespace) -> int:
     if args.action == "set":
         if not args.dir:
@@ -400,6 +409,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="only applications with one of these statuses",
     )
     p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser(
+        "dashboard",
+        help="write every application, its timeline and contacts to <home>/dashboard.html",
+    )
+    p.add_argument("--open", action="store_true", help="then open it in the browser")
+    p.set_defaults(func=cmd_dashboard)
 
     p = sub.add_parser(
         "home",
