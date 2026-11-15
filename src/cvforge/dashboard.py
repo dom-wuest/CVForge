@@ -355,17 +355,24 @@ def _strip(apps: list[dict], today: dt.date) -> dict[str, Any]:
             ticks.append({"left": pct(day), "label": short_label(day)})
 
     rows = []
+    seen_kinds: set[str] = set()
     for app in apps:
-        if not app["active"] or not app["events"]:
+        # CVForge's own "Created"/"Built" entries are not contact with anyone,
+        # and they sit on the same day as the submission.
+        events = [e for e in reversed(app["events"]) if e["kind"] != "build"]
+        if not app["active"] or not events:
             continue
-        positions = [pct(e["date"]) for e in app["events"]]
+        positions = [pct(e["date"]) for e in events]
+        seen_kinds.update(e["kind"] for e in events)
+        # Oldest first: the page spreads crowded badges left to right in this order.
         dots = [
             {
                 "left": pct(e["date"]),
+                "kind": e["kind"],
                 "look": "overdue" if e["overdue"] else "planned" if e["planned"] else "done",
                 "title": f"{e['day']} · {e['kind_label']} · {e['event']}",
             }
-            for e in reversed(app["events"])
+            for e in events
         ]
         tracks = len(app["tracks"])
         rows.append(
@@ -378,7 +385,8 @@ def _strip(apps: list[dict], today: dt.date) -> dict[str, Any]:
                 "dots": dots,
             }
         )
-    return {"today": pct(today), "ticks": ticks, "rows": rows}
+    kinds = [{"kind": k, "label": label} for k, label in KIND_LABELS.items() if k in seen_kinds]
+    return {"today": pct(today), "ticks": ticks, "rows": rows, "kinds": kinds}
 
 
 def _next_up(apps: list[dict], today: dt.date) -> list[dict]:
