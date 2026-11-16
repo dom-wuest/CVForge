@@ -44,6 +44,7 @@ import threading
 from pathlib import Path
 from typing import Any, Literal
 
+import yaml
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
@@ -284,18 +285,32 @@ def _yaml() -> YAML:
     return y
 
 
+def _misread(text: str) -> bool:
+    """Whether PyYAML would read this string, unquoted, as something else.
+
+    Everything but this server reads dossiers with PyYAML, which follows YAML
+    1.1; ruamel writes YAML 1.2. In 1.1 an unquoted 2026-11-23 is a date, yes
+    is a boolean and 14:00 is the base-60 integer 840 - which once put "840"
+    on the dashboard as an interview time.
+    """
+    try:
+        return yaml.safe_load(text) != text
+    except yaml.YAMLError:
+        return True
+
+
 def _yaml_value(value: Any) -> Any:
-    """A JSON value as ruamel should write it: dates quoted, prose as a block."""
+    """A JSON value as ruamel should write it: prose as a block, and quoted
+    wherever YAML 1.1 would read it as anything but this string."""
     if isinstance(value, dict):
         return {k: _yaml_value(v) for k, v in value.items()}
     if isinstance(value, list):
         return [_yaml_value(v) for v in value]
     if isinstance(value, str):
-        if DAY_RE.match(value):
-            # Unquoted, YAML reads a date object, and the schema rejects it.
-            return DoubleQuotedScalarString(value)
         if "\n" in value:
             return LiteralScalarString(value)
+        if _misread(value):
+            return DoubleQuotedScalarString(value)
     return value
 
 
@@ -398,13 +413,15 @@ def _write_dossier(slug: str, change) -> dict:
     y = _yaml()
     data = (y.load(source.read_text(encoding="utf-8")) if source.is_file() else None) or {}
     change(data)
-    resolve.validate_against(
-        json.loads(json.dumps(data, default=str)), paths.DOSSIER_SCHEMA, paths.display(source)
-    )
     stream = io.StringIO()
     y.dump(data, stream)
-    source.write_text(stream.getvalue(), encoding="utf-8")
-    return json.loads(json.dumps(data, default=str))
+    text = stream.getvalue()
+    # Validated as `check` and the dashboard will read it - PyYAML, YAML 1.1 -
+    # not as ruamel holds it in memory: the two disagree on unquoted 14:00.
+    written = json.loads(json.dumps(yaml.safe_load(text), default=str))
+    resolve.validate_against(written, paths.DOSSIER_SCHEMA, paths.display(source))
+    source.write_text(text, encoding="utf-8")
+    return written
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -826,7 +843,8 @@ def log_event(
     the application's new status (or, with track, that track's track_status).
 
     date: YYYY-MM-DD, the day it happened (planned: the day it will; approx=true
-    when that is an estimate). time: "HH:MM" or "HH:MM-HH:MM". event: one line.
+    when that is an estimate). time: "HH:MM", or "HH:MM-HH:MM" whenever the end
+    or the length is known ("14:00, 90 minutes" is "14:00-15:30"). event: one line.
     participants: names exactly as in the dossier's contacts - the user is
     never listed. notes: what was said and agreed, Markdown with "- " lists.
     files: paths relative to the application, e.g. recv/form_signed.pdf.

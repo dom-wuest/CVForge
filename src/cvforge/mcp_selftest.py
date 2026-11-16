@@ -24,6 +24,7 @@ import tempfile
 import zlib
 from pathlib import Path
 
+import yaml
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
@@ -233,11 +234,21 @@ async def _run(home: Path) -> list[tuple[str, bool, str]]:
         tracks = (got.get("dossier") or {}).get("tracks") or [{}]
         check("planned event logged", tracks[0].get("status") == "interview", text)
         err, text = await call(
-            "log_event", slug=SLUG, date="2026-11-03", participants=["Nobody"], event="A call"
+            "log_event",
+            slug=SLUG,
+            date="2026-11-03",
+            time="14:00",
+            participants=["Nobody"],
+            event="A call",
         )
         got = json.loads(text) if not err else {}
         warned = any("'Nobody' is not in contacts" in w for w in got.get("warnings", []))
         check("unknown participant warned", warned, text)
+        # Unquoted, 14:00 is the integer 840 to YAML 1.1 - what check and the
+        # dashboard read with. It once reached the dashboard that way.
+        timeline = yaml.safe_load((app / "dossier.yaml").read_text("utf-8"))["timeline"]
+        times = [e.get("time") for e in timeline if e.get("event") == "A call"]
+        check("time survives YAML 1.1", times == ["14:00"], repr(times))
         err, text = await call("update_event", slug=SLUG, date="2099-01-05", match="nothing")
         check("update_event needs exactly one match", err, text)
         err, text = await call(
