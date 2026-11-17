@@ -498,6 +498,12 @@ def write(now: dt.datetime | None = None) -> Path:
     payload = payload.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     template = paths.DASHBOARD_TEMPLATE.read_text(encoding="utf-8")
     html = template.replace("/*CVFORGE_DATA*/null", payload, 1)
+    # The logo goes in as it is in assets/logo - embedded, so the page stays a
+    # single file that works offline from any synced copy of the home.
+    favicon = (paths.LOGO / "cvforge-favicon.svg").read_text(encoding="utf-8").strip()
+    html = html.replace("/*CVFORGE_FAVICON*/", "data:image/svg+xml," + quote(favicon, safe=""), 1)
+    mark = (paths.LOGO / "cvforge-mark.svg").read_text(encoding="utf-8").strip()
+    html = html.replace("<!--CVFORGE_MARK-->", mark, 1)
     paths.DASHBOARD.write_text(html, encoding="utf-8")
     return paths.DASHBOARD
 

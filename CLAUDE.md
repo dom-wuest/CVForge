@@ -144,6 +144,8 @@ templates/letter/    The letter renderer. Imports ../pdf/ for theme, icons and
                      the contact row, so the two cannot drift apart on look.
 assets/
   fonts/               Committed, SIL OFL. Inter, JetBrains Mono, Font Awesome 7.
+  logo/                build.py and the SVGs it writes: README header (light/dark,
+                       animated), mark, favicon. Edit build.py, never the SVGs.
   projects/            Screenshots for the projects page.
   private/             GITIGNORED. Without a home: signature.png and documents/.
 build/  out/         Generated. Both gitignored.
@@ -792,6 +794,24 @@ everything is still written through the CLI or the MCP tools.
 - **Thresholds** are module constants: `STALE_DAYS` (applied, no news →
   attention), `AHEAD_DAYS` (how far "Next up" looks), `STRIP_BACK`/
   `STRIP_AHEAD` (the activity window).
+- **The logo** comes from `assets/logo/`: `write` embeds `cvforge-favicon.svg`
+  as a data URI and `cvforge-mark.svg` into a `<template>` the header clones.
+  The mark's colours are `var(--cvf-*, fallback)`, which `.brand-row` sets
+  from the page's theme; hovering it plays the strike on the mark's
+  `cvf-swing`/`cvf-sparks` classes.
+
+### The logo
+
+"The strike": a hammer meets a page, sparks fly, the page's lines are
+written. `uv run assets/logo/build.py` (a PEP 723 script; fontTools comes
+with it, not with the project) writes every SVG from one geometry. The
+wordmark is outlined from `assets/fonts/Inter-Bold.otf`, because an SVG shown
+as an image - a README, a favicon - cannot load a font. The README header is
+two files, chosen by `<picture>` per GitHub theme; its loop is CSS inside the
+SVG, which GitHub plays, and `prefers-reduced-motion` shows the resting frame.
+Every class and keyframe is prefixed `cvf-` so an inlined copy cannot collide
+with the page that inlines it. Inline SVG styles are global, so never inline
+two different logo files into one page.
 
 ---
 

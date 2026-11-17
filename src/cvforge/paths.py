@@ -116,6 +116,9 @@ GUIDANCE = (HOME or ROOT) / "guidance"
 DASHBOARD = (HOME or ROOT) / "dashboard.html"
 DASHBOARD_TEMPLATE = ROOT / "templates" / "dashboard" / "dashboard.html"
 
+# Built by assets/logo/build.py; the dashboard embeds the mark and the favicon.
+LOGO = ASSETS / "logo"
+
 SCHEMA = ROOT / "schema"
 CV_SCHEMA = SCHEMA / "cv.schema.json"
 LETTER_SCHEMA = SCHEMA / "letter.schema.json"

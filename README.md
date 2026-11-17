@@ -1,4 +1,9 @@
-# CVForge
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/cvforge-header-dark.svg">
+    <img src="assets/logo/cvforge-header-light.svg" alt="CVForge" width="432">
+  </picture>
+</h1>
 
 One CV, written once as data. From that single source:
 

@@ -5,12 +5,14 @@
      between three views - overview, one application, people - and draws them.
      Every value is set as text, never as HTML: the dossiers hold postings and
      notes written by other people. Self-contained on purpose - no CDN, no
-     fonts to fetch - so it opens offline from any synced copy of the home. -->
+     fonts to fetch - so it opens offline from any synced copy of the home.
+     dashboard.py also fills in the favicon and the mark from assets/logo/. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CVForge applications</title>
+<link rel="icon" type="image/svg+xml" href="/*CVFORGE_FAVICON*/">
 <style>
 :root {
   --bg: #F6F6F3; --surface: #FFFFFF; --column: #EDEDE8; --border: #E3E3DE; --line: #EFEFEA;
@@ -21,6 +23,7 @@
   --green-bg: #E3F4EA; --green: #1C6B3E; --rose-bg: #F3ECEC; --rose: #7A4A4A;
   --warn-bg: #FCEFE3; --warn: #8A4100; --warn-dot: #B4500A; --idle-dot: #8A8A92;
   --teal-bg: #E3F1F1; --teal: #1F5F5F;
+  --ember: #E8590C; --spark: #F59F00;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -32,6 +35,7 @@
     --green-bg: #1D3527; --green: #9ED7B3; --rose-bg: #3A2626; --rose: #E0B4B4;
     --warn-bg: #3D2A1A; --warn: #F2B98A; --warn-dot: #E08A4A; --idle-dot: #77777F;
     --teal-bg: #1C3434; --teal: #9ED3D3;
+    --ember: #F76707; --spark: #F59F00;
   }
 }
 * { box-sizing: border-box; }
@@ -59,6 +63,17 @@ h1, h2, h3, p, ul { margin: 0; }
 .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
 .brand { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .top h1 { font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+/* The logo mark, recoloured to this page's theme through its --cvf-*
+   properties. Hovering plays the README's strike once. */
+.brand-row { display: flex; align-items: center; gap: 16px; --cvf-ink: var(--ink); --cvf-paper: var(--surface); --cvf-ember: var(--ember); --cvf-spark: var(--spark); }
+.brand-row svg { flex: none; width: 60px; height: 60px; overflow: visible; }
+.brand-row .cvf-swing { transform-box: fill-box; transform-origin: 50% 100%; }
+.brand-row .cvf-sparks { transform-box: fill-box; transform-origin: 0% 100%; }
+.brand-row:hover .cvf-swing { animation: cvf-hover-swing .9s cubic-bezier(.55, 0, .45, 1); }
+.brand-row:hover .cvf-sparks { animation: cvf-hover-sparks .9s ease-out; }
+@keyframes cvf-hover-swing { 0% { transform: rotate(0deg); } 40% { transform: rotate(-28deg); } 72% { transform: rotate(3deg); } 82%, 100% { transform: rotate(0deg); } }
+@keyframes cvf-hover-sparks { 0%, 68% { opacity: 0; transform: scale(.4); } 78% { opacity: 1; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .brand-row * { animation: none !important; } }
 .btn { border: 1px solid var(--control); background: var(--surface); border-radius: 8px; padding: 10px 14px; min-height: 44px; font-size: 14px; text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; cursor: pointer; }
 .btn:hover { color: var(--ink); border-color: var(--muted); }
 .btn.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
@@ -194,6 +209,7 @@ button.ev-head:focus-visible { outline: 2px solid var(--accent); outline-offset:
 </head>
 <body>
 <div id="app" class="page"></div>
+<template id="cvf-mark"><!--CVFORGE_MARK--></template>
 <noscript><p style="padding: 24px">This page draws itself with JavaScript.</p></noscript>
 <script id="cvforge-data" type="application/json">/*CVFORGE_DATA*/null</script>
 <script>
@@ -270,11 +286,23 @@ function header(view) {
       h("button", { type: "button", class: "btn" + (scope === "all" ? " on" : ""), "aria-pressed": String(scope === "all"), onclick: () => setScope("all") }, "All"));
   }
   return h("header", { class: "top" },
-    h("div", {},
+    h("div", { class: "brand-row" }, brandMark(), h("div", {},
       h("div", { class: "brand" }, "CVForge"),
       h("h1", {}, view === "people" ? "People" : "Applications"),
-      h("div", { class: "small muted" }, "Generated " + DATA.generated + " · " + DATA.count + " dossiers · reload after `cvforge dashboard` or any change through Claude")),
+      h("div", { class: "small muted" }, "Generated " + DATA.generated + " · " + DATA.count + " dossiers · reload after `cvforge dashboard` or any change through Claude"))),
     nav);
+}
+
+// assets/logo/cvforge-mark.svg, embedded by dashboard.py. Decorative here:
+// "CVForge" is written right beside it.
+function brandMark() {
+  const source = document.getElementById("cvf-mark");
+  const svg = source && source.content.firstElementChild;
+  if (!svg) return null;
+  const mark = svg.cloneNode(true);
+  mark.removeAttribute("role");
+  mark.setAttribute("aria-hidden", "true");
+  return mark;
 }
 
 function setScope(value) {
