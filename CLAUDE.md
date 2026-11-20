@@ -845,7 +845,10 @@ an invented `signature.svg`, so the real home is never read. The CV is
 resolved with the **public** profile into `build/demo/` and rendered with
 `--input artifact=`, so `out/` is untouched; the dashboard is written with a
 pinned `now` so the screenshot does not drift; Edge or Chrome takes the
-screenshots headless. It deletes every file it wrote under `build/`.
+screenshots headless. The website's CV heading has no id to jump to, so that
+one shot drives the browser over the DevTools protocol (a stdlib websocket
+client in `build.py`): find the heading, capture from just above it. It
+deletes every file it wrote under `build/`.
 
 Everything in `docs/demo/` is invented: ACME, Initech, Globex and Hooli, and
 Microsoft's sample companies Northwind, Contoso and Fabrikam. **Never put a

@@ -32,9 +32,9 @@ applications/*
 
 # ─── Editable diagram sources ───────────────────────────────────────────────
 # draw.io exports embed their whole editable mxfile in a PNG metadata chunk.
-# For resources/iVS3D_overview.png that chunk was 12.8MB against 240KB of
-# actual pixels, and it does not compress (9MB even zlib-9), so the tracked PNG
-# is stripped and the editable original is kept alongside it under this name.
+# For one diagram that chunk was 12.8MB against 240KB of actual pixels, and it
+# does not compress (9MB even zlib-9), so a tracked PNG is stripped and the
+# editable original is kept alongside it under this name.
 # Keep these files - they are how the diagrams get edited.
 *.drawio.png
 *.drawio

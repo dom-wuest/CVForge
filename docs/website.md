@@ -9,7 +9,7 @@ as the PDF. CVForge exports it into the
 [Portfolio](https://github.com/dom-wuest/Portfolio) repository, a Hugo site,
 which renders it in its own layout.
 
-<a href="https://dom-wuest.de/about/"><img src="images/website.png" alt="The About page of dom-wuest.de: photo, name and biography, followed by the CV section with the same experience timeline as the PDF and a Download as PDF button"></a>
+<a href="https://dom-wuest.de/about/"><img src="images/website.png" alt="The CV section of dom-wuest.de/about: a Download as PDF button, then experience and education on the same timeline as the PDF, in the site's own layout"></a>
 
 ## Exporting
 

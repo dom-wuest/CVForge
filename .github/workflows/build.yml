@@ -40,10 +40,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cv
-          path: |
-            out/*.pdf
-            out/*.html
-            out/cv.css
+          path: out/*.pdf
           if-no-files-found: error
 
   release:
@@ -58,6 +55,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: out/*.pdf
-# Deliberately no Pages deploy: the HTML target is a fragment for an existing
-# site, not a standalone page. Pull out/cv-en.html and out/cv.css from the
-# workflow artifact and embed them.
+# Deliberately no Pages deploy: the website lives in its own repository and
+# gets the public CV through `cvforge export` - see docs/website.md.
