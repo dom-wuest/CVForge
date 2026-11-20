@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=../../../../../schema/dossier.schema.json
+# Demo application - the company, the people and every event are invented.
+
+summary: >
+  Graphics programmer on a mobile rendering team: shader optimization and
+  frame-time budgets on phones.
+keywords: [mobile rendering, shaders, performance, c++]
+
+company:
+  name: "Hooli"
+  about: Consumer apps and a mobile 3D framework. Hamburg office.
+
+role:
+  title: "Graphics Programmer"
+  location: "Hamburg"
+  work_model: hybrid
+  employment: full-time
+
+applied: "2026-09-18"
+
+posting:
+  url: null
+  fetched: null
+  archive: null
+  deadline: null
+  notes: null
+
+approach:
+  based_on: null
+  angle: "Shader optimization paper."
+  cv: []
+  gaps: ["No mobile GPU experience"]
+
+submission:
+  method: portal
+  url: null
+  questions: []
+
+contacts:
+  - name: Alex Smith
+    role: Recruiter
+
+tracks: []
+
+status: rejected
+
+timeline:
+  - date: "2026-09-17"
+    kind: build
+    event: Created
+  - date: "2026-09-18"
+    kind: submitted
+    channel: portal
+    event: Applied via the portal
+  - date: "2026-10-09"
+    kind: rejection
+    channel: email
+    with: [Alex Smith]
+    event: Rejected - looking for mobile experience
+
+notes: null

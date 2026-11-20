@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=../../../../../schema/dossier.schema.json
+# Demo application - the company, the people and every event are invented.
+
+summary: >
+  GPU fluid and particle simulation for a visual-effects toolchain, CUDA and
+  Vulkan compute.
+keywords: [gpu simulation, cfd, cuda, vulkan, vfx]
+
+company:
+  name: "Globex"
+  about: Simulation tools for film and visual effects. Munich.
+
+role:
+  title: "GPU Simulation Developer"
+  location: "Munich"
+  work_model: remote
+  employment: full-time
+
+applied: null
+
+posting:
+  url: null
+  fetched: null
+  archive: null
+  deadline: "2026-11-30"
+  notes: Wants CUDA experience; the 2D fluid simulation project is the hook.
+
+approach:
+  based_on: 2026-10-acme-rendering-engineer
+  angle: "The fluid simulation project, then the GPU profiling work."
+  cv: []
+  gaps: ["CUDA mostly from coursework"]
+
+submission:
+  method: portal
+  url: null
+  questions: []
+
+contacts: []
+tracks: []
+
+status: draft
+
+timeline:
+  - date: "2026-11-17"
+    kind: build
+    event: Created
+  - date: "2026-11-30"
+    kind: other
+    planned: true
+    event: Application deadline
+
+notes: null

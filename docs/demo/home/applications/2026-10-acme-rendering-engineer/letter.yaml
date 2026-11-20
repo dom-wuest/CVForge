@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=../../../../../schema/letter.schema.json
+#
+# Demo application. ACME Graphics GmbH, its posting and its people are
+# invented; docs/demo/build.py renders this letter for the README.
+
+meta:
+  lang: en
+  slug: 2026-10-acme-rendering-engineer
+  date: "2026-10-27"
+  layout: din
+  justify: false
+
+recipient:
+  company: "ACME Graphics GmbH"
+  department: "Talent Acquisition"
+  person: "Ms Jane Doe"
+  salutation: "Dear Ms Doe,"
+  street: "Musterallee 7"
+  postal_code: "10115"
+  city: "Berlin"
+  country: null
+
+job:
+  title: "Rendering Engineer"
+  reference: "RE-2026-042"
+  reference_label: "Job ID"
+  source: "Your posting of 20 October 2026"
+  url: null
+
+subject: null
+sender_contacts: [email, linkedin, github, website]
+
+body:
+  - >
+    Your posting asks for a rendering engineer who is as comfortable in a GPU
+    profiler as in a paper on neural rendering. That combination is where I
+    have spent the last years, and it is why I would like to join the
+    real-time graphics team at ACME.
+  - >
+    In my master's thesis at KIT I built a pipeline that replaces expensive
+    shader functions with tiny neural networks and symbolic expressions -
+    fitted automatically, and validated by rendering the shader end to end.
+    At KIT's IVD I integrated the Falcor renderer into an LLM-driven shader
+    optimization pipeline that found speedups of up to 2.19×; the work is now
+    a co-authored paper under submission.
+  - >
+    Before that I spent four and a half years as a research assistant at
+    Fraunhofer IOSB, deploying deep learning models in C++ with ONNX Runtime,
+    shipping cross-platform software and maintaining its CI/CD pipelines. I
+    am used to code that has to run on someone else's machine, not only on
+    mine.
+  - >
+    I would welcome the chance to talk about how I could contribute to your
+    renderer, and look forward to hearing from you.
+
+attachments: []
+closing: null
+enclosures: null

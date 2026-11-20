@@ -1,0 +1,11 @@
+# The demo's stand-in for private.yaml. docs/demo/build.py copies it into a
+# throwaway home under that name. Every value here is a placeholder - the
+# same ones data/private.example.yaml uses - and the signature is invented.
+
+address:
+  street: "Musterstraße 1"
+  postal_code: "76131"
+  city: "Karlsruhe"
+  country: null
+
+signature: "private/signature.svg"

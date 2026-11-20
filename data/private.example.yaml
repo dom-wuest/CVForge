@@ -12,7 +12,7 @@
 # and the cover letters alike.
 #
 # It is merged in only for `--profile full` (the default for the PDF).
-# `--profile public` - which the HTML target forces - ignores this file
+# `--profile public` - which `export` forces - ignores this file
 # entirely, even when it exists.
 #
 # If this file is missing, every build still succeeds; the committed

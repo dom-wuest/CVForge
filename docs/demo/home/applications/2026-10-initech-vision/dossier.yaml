@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=../../../../../schema/dossier.schema.json
+# Demo application - the company, the people and every event are invented.
+
+summary: >
+  Computer vision for industrial inspection: detection and segmentation
+  models deployed in C++ on edge devices.
+keywords: [computer vision, onnx, c++, edge deployment, segmentation]
+
+company:
+  name: "Initech"
+  about: Builds inspection systems for production lines. Stuttgart.
+
+role:
+  title: "Inspection Software Engineer"
+  location: "Stuttgart"
+  work_model: onsite
+  employment: full-time
+
+applied: "2026-10-30"
+
+posting:
+  url: null
+  fetched: null
+  archive: null
+  deadline: null
+  notes: null
+
+approach:
+  based_on: 2026-10-acme-rendering-engineer
+  angle: "Fraunhofer deployment work first, rendering second."
+  cv: ["Fraunhofer highlights reordered: deployment first"]
+  gaps: []
+
+submission:
+  method: email
+  url: null
+  questions: []
+
+contacts: []
+tracks: []
+
+status: applied
+
+timeline:
+  - date: "2026-10-29"
+    kind: build
+    event: Created
+  - date: "2026-10-30"
+    kind: submitted
+    channel: email
+    event: Sent to the jobs address
+
+notes: null

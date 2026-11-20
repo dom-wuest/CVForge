@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../schema/cv.schema.json
 #
-# English CV content. See README.md for the full format reference.
+# English CV content. See docs/cv.md for the full format reference.
 #
 # Three rules that bite:
 #   1. Dates are QUOTED strings, "YYYY" or "YYYY-MM". Quoting keeps the type

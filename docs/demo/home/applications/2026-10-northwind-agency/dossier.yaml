@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=../../../../../schema/dossier.schema.json
+# Demo application - the agency, its clients, the people and every event are
+# invented (Northwind, Contoso and Fabrikam are Microsoft's sample companies).
+
+summary: >
+  A placement agency for graphics and simulation roles; proposes candidates
+  to its clients.
+keywords: [agency, rendering, simulation, c++]
+
+company:
+  name: "Northwind Talent"
+  about: Technical recruiting agency for games and simulation. Karlsruhe.
+
+role:
+  title: "Graphics roles via agency"
+  location: null
+  work_model: null
+  employment: full-time
+
+applied: "2026-10-16"
+
+posting:
+  url: null
+  fetched: null
+  archive: null
+  deadline: null
+  notes: null
+
+approach:
+  based_on: null
+  angle: null
+  cv: []
+  gaps: []
+
+submission:
+  method: email
+  url: null
+  questions: []
+
+contacts:
+  - name: Sam Taylor
+    role: Recruiter
+    notes: Du. Prefers phone calls.
+  - name: Chris Lee
+    role: Engineering Manager
+    org: Contoso
+
+tracks:
+  - id: contoso
+    company: Contoso
+    title: Engine Programmer
+    location: Karlsruhe
+    status: interview
+  - id: fabrikam
+    company: Fabrikam
+    title: Simulation Engineer
+    location: Mannheim
+    status: proposed
+
+status: screening
+
+timeline:
+  - date: "2026-10-16"
+    kind: submitted
+    channel: email
+    event: Sent CV to the agency
+  - date: "2026-10-20"
+    time: "16:00-16:30"
+    kind: call
+    channel: phone
+    with: [Sam Taylor]
+    event: Intro call
+    notes: |
+      - Two clients in mind, both C++ and on-site
+  - date: "2026-10-24"
+    kind: email
+    with: [Sam Taylor]
+    track: contoso
+    event: Proposed to Contoso
+  - date: "2026-11-05"
+    kind: email
+    with: [Sam Taylor]
+    track: fabrikam
+    event: Proposed to Fabrikam
+  - date: "2026-11-12"
+    time: "11:00-12:00"
+    kind: interview
+    channel: video
+    with: [Chris Lee, Sam Taylor]
+    track: contoso
+    event: First interview at Contoso
+    notes: |
+      - Engine team of 6, custom DX12 renderer
+      - Asked about the Fraunhofer CI pipelines
+  - date: "2026-11-24"
+    kind: feedback
+    with: [Sam Taylor]
+    track: contoso
+    planned: true
+    approx: true
+    event: Feedback from Contoso expected
+
+notes: null

@@ -1,7 +1,8 @@
 # CLAUDE.md — working on CVForge
 
 This file is for anyone changing the code or the templates. Editing the CV
-content or writing an application needs only the [README](README.md).
+content or writing an application needs only the [README](README.md) and
+the user docs in [docs/](docs/).
 
 CVForge turns one YAML source into an A4 CV (Typst), the public data for a
 website, and complete job applications — cover letter, CV and attachments in
@@ -24,6 +25,7 @@ signature, certificates) is kept out of every tracked file by construction.
 - [Publishing to the website](#publishing-to-the-website)
 - [The MCP server](#the-mcp-server)
 - [The dashboard](#the-dashboard)
+- [Docs and previews](#docs-and-previews)
 - [Troubleshooting](#troubleshooting)
 - [Verification recipe](#verification-recipe)
 
@@ -148,6 +150,10 @@ assets/
                        animated), mark, favicon. Edit build.py, never the SVGs.
   projects/            Screenshots for the projects page.
   private/             GITIGNORED. Without a home: signature.png and documents/.
+docs/                The user docs, one topic per file; README.md links them.
+  images/              overview.py and the SVGs it writes, plus the previews.
+  demo/                Invented applications and a fake sender for the previews,
+                       and build.py, which renders them. See Docs and previews.
 build/  out/         Generated. Both gitignored.
 ```
 
@@ -812,6 +818,41 @@ SVG, which GitHub plays, and `prefers-reduced-motion` shows the resting frame.
 Every class and keyframe is prefixed `cvf-` so an inlined copy cannot collide
 with the page that inlines it. Inline SVG styles are global, so never inline
 two different logo files into one page.
+
+---
+
+## Docs and previews
+
+The README is a front page: what CVForge does, the previews, links. How to use
+each part is in `docs/`, one file per topic, each opening with the same
+navigation line. A user-facing behaviour change goes into the doc for its
+topic; design reasoning goes here. The Claude doc is `with-claude.md`, not
+`claude.md`: on a case-insensitive filesystem that would be `docs/CLAUDE.md`,
+which Claude Code loads as instructions.
+
+**The overview diagram** (`docs/images/overview-{light,dark}.svg`) is built by
+`uv run docs/images/overview.py`, the same way as the logo: text outlined from
+the committed fonts, one file per GitHub theme, palette shared with the logo.
+Each glyph is outlined once into `<defs>` and placed with `<use>`; outlining
+every occurrence made the files five times the size. Every box names its doc
+file - rename a doc, rebuild the diagram.
+
+**The previews** - the CV and letter pages and PDFs, the dashboard and the
+website screenshots in `docs/images/` - come from
+`uv run python docs/demo/build.py [--website]`. It copies `docs/demo/home/`
+into a throwaway home, with `docs/demo/sender.yaml` as its private file and
+an invented `signature.svg`, so the real home is never read. The CV is
+resolved with the **public** profile into `build/demo/` and rendered with
+`--input artifact=`, so `out/` is untouched; the dashboard is written with a
+pinned `now` so the screenshot does not drift; Edge or Chrome takes the
+screenshots headless. It deletes every file it wrote under `build/`.
+
+Everything in `docs/demo/` is invented: ACME, Initech, Globex and Hooli, and
+Microsoft's sample companies Northwind, Contoso and Fabrikam. **Never put a
+real application, company or person you applied to into it, or into any
+screenshot** - this repository is public. The fake sender file is named
+`sender.yaml` so that no tracked file carries the private file's name. Rebuild
+the previews after a change to the templates or to `data/cv-en.yaml`.
 
 ---
 

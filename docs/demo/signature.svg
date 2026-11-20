@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <!-- An invented signature for the demo letter. Not anyone's real one. -->
+  <g fill="none" stroke="#1F2A5C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M38 22C30 50 28 74 26 96M24 30C60 14 98 26 96 56C94 84 58 98 22 90"/>
+    <path d="M112 42C114 62 116 78 122 84C128 76 132 60 136 50C138 66 142 80 148 84C156 72 160 56 162 44"/>
+    <path d="M172 58C170 72 174 82 182 80C190 76 192 64 194 56C194 70 196 80 202 80"/>
+    <path d="M224 58C214 54 208 62 216 68C226 74 226 84 212 84"/>
+    <path d="M244 36C242 56 242 74 250 82C256 86 262 80 266 74"/>
+    <path d="M232 52C246 50 258 49 272 48"/>
+    <path d="M60 106C140 98 240 100 372 88"/>
+  </g>
+  <g fill="#1F2A5C">
+    <circle cx="180" cy="44" r="2.6"/>
+    <circle cx="194" cy="42" r="2.6"/>
+  </g>
+</svg>

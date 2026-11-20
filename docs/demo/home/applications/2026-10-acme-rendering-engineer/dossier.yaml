@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=../../../../../schema/dossier.schema.json
+# Demo application - the company, the people and every event are invented.
+
+summary: >
+  Real-time rendering for a games and visualization engine: GPU performance,
+  shading, and neural techniques moving from research into production.
+keywords: [real-time rendering, vulkan, c++, shaders, neural rendering]
+
+company:
+  name: "ACME Graphics"
+  about: >
+    Makes a real-time engine for games and product visualization. Around 300
+    people, offices in Berlin and Munich.
+
+role:
+  title: null
+  location: "Berlin"
+  work_model: hybrid
+  employment: full-time
+
+applied: "2026-10-27"
+
+posting:
+  url: null
+  fetched: null
+  archive: null
+  deadline: null
+  notes: >
+    Vulkan or DirectX 12, profiling on GPU, a feel for where ML helps in a
+    renderer. Nice to have: Slang, publications.
+
+approach:
+  based_on: null
+  angle: "Thesis + the LLM shader optimization paper: research that ships."
+  cv: ["Projects page included", "Profile reworded towards real-time rendering"]
+  gaps: ["No shipped game title - the Fraunhofer software stands in for it"]
+
+submission:
+  method: portal
+  url: null
+  questions:
+    - question: "Earliest start date?"
+      answer: "January 2027"
+
+contacts:
+  - name: Jane Doe
+    role: Talent Acquisition
+    email: jane.doe@acme-graphics.example
+    notes: Friendly, quick to answer. Sie.
+  - name: Max Mustermann
+    role: Lead Rendering Engineer
+    notes: Works on the GI pipeline; asked most of the technical questions.
+  - name: Erika Musterfrau
+    role: Head of Graphics
+
+tracks: []
+
+status: interview
+
+timeline:
+  - date: "2026-10-26"
+    kind: build
+    event: Created
+  - date: "2026-10-27"
+    kind: submitted
+    channel: portal
+    event: Applied via the careers portal
+  - date: "2026-11-04"
+    kind: email
+    channel: email
+    with: [Jane Doe]
+    event: Invitation to a first call
+  - date: "2026-11-06"
+    time: "10:00-10:30"
+    kind: call
+    channel: video
+    with: [Jane Doe]
+    event: Screening call
+    notes: |
+      - Team of 12, renderer written in-house on Vulkan
+      - Salary range discussed, fits
+      - Next: technical interview with the rendering team
+  - date: "2026-11-13"
+    time: "14:00-15:30"
+    kind: interview
+    channel: video
+    with: [Max Mustermann, Jane Doe]
+    event: Technical interview, went well
+    notes: |
+      - Walked through the shader LOD thesis; lots of questions on validation
+      - Whiteboard: frustum culling on the GPU, then a bug hunt in a compute shader
+      - They are evaluating neural texture compression
+  - date: "2026-11-26"
+    time: "10:00-15:00"
+    kind: interview
+    channel: onsite
+    with: [Max Mustermann, Erika Musterfrau]
+    planned: true
+    event: On-site day in Berlin
+    notes: |
+      - Meet the team, pair-programming session, lunch
+      - Bring a laptop with the thesis demo
+
+notes: null
