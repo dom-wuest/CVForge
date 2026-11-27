@@ -99,6 +99,31 @@ Something that has not happened yet - an interview, a deadline, a promised
 answer - gets `planned: true` (and `approx: true` if the date is a guess).
 When it happens, **update that entry** instead of adding a second one.
 
+### Formatting notes
+
+Notes - and `summary`, `company.about`, `approach` and portal answers - are
+shown with a subset of Markdown:
+
+| Write | Shows |
+|---|---|
+| `**bold**`, `*italic*` (or `__bold__`, `_italic_`) | **bold**, *italic* |
+| `` `RE-2026-042` `` | `RE-2026-042` |
+| `https://…`, `jane@example.com`, `[the posting](https://…)` | links - http, https and mailto only |
+| `- item`, `1. item` | a list, a numbered list; an indented line continues the item |
+| `> Thank you for …` | a quote that keeps its line breaks - for pasting an email word for word |
+
+Anything else - headings, tables, images, HTML - is shown as the plain text you
+wrote, and so is a marker that does not pair up. `5*3*2`, `*.pdf` and
+`posting_v2_final.pdf` stay as they are.
+
+Write notes as a literal block, `notes: |`. A folded block, `notes: >`, joins
+its lines, so a list or a quote in it becomes one run-on paragraph;
+`cvforge check` warns about that, and about headings or tables the dashboard
+will not format. On a single line, YAML itself gets in the way: a value that
+starts with `*`, `[` or `` ` `` needs quotes, and an unquoted ` #` starts a
+comment that silently cuts the rest off. Claude Desktop knows all of this and
+writes notes the way the dashboard shows them.
+
 One fact, one place: what was said at an event goes in that event's `notes`;
 facts about a person (Du or Sie, background, how to reach them) in their
 contact `notes`; what concerns the application as a whole in the dossier's

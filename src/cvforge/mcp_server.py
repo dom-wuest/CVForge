@@ -55,6 +55,7 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString, LiteralScalarStri
 
 from . import check as check_mod
 from . import dashboard, guidance, letter, paths, posting, resolve, service
+from . import notes as notes_mod
 
 SLUG_RE = re.compile(r"^\d{4}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -97,7 +98,7 @@ EVENT_KEYS = (
     "files",
 )
 
-INSTRUCTIONS = """\
+INSTRUCTIONS = f"""\
 CVForge builds job applications (cover letter + CV + certificates) for the user
 from YAML. You read past applications, draft new ones and build them locally.
 
@@ -142,7 +143,7 @@ rebuilt after every change, so complete entries matter:
 - One timeline entry per event (log_event) with kind, channel, time and
   `participants`: the names exactly as in the dossier's contacts. Add a new
   person with update_dossier first (contacts is a list - send all of them).
-- What was said goes in that entry's `notes` (Markdown, "- " for lists) - not
+- What was said goes in that entry's `notes` (Markdown, see below) - not
   in the dossier notes and not in a contact's notes. A contact's notes hold
   facts about the person only: Du or Sie, background, how to reach them. The
   dossier notes hold what concerns the application as a whole.
@@ -167,6 +168,10 @@ addresses - look a missing postal address up with web search (company imprint
 or an official register) and record the source in the dossier notes. The
 user's phone, address and signature never appear in your tool results - that
 is by design, not a bug.
+
+Notes - in timeline entries, contacts, tracks, the posting and the dossier -
+are shown on the dashboard, which renders {notes_mod.SUBSET} Write multi-line notes as
+they are; the server stores them as YAML block text.
 """
 
 server = MCPServer(name="cvforge", instructions=INSTRUCTIONS)
@@ -846,7 +851,8 @@ def log_event(
     when that is an estimate). time: "HH:MM", or "HH:MM-HH:MM" whenever the end
     or the length is known ("14:00, 90 minutes" is "14:00-15:30"). event: one line.
     participants: names exactly as in the dossier's contacts - the user is
-    never listed. notes: what was said and agreed, Markdown with "- " lists.
+    never listed. notes: what was said and agreed, in the Markdown the
+    instructions list - "- " lists, **bold**, "> " to quote an email.
     files: paths relative to the application, e.g. recv/form_signed.pdf.
     Returns warnings, e.g. a participant who is not a contact yet."""
     _slug(slug)

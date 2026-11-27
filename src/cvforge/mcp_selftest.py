@@ -259,7 +259,11 @@ async def _run(home: Path) -> list[tuple[str, bool, str]]:
             new_date="2026-11-05",
             planned=False,
             event="Interview at the client, went well",
-            notes="- asked about tests\n- next round in two weeks",
+            notes=(
+                "- **asked** about tests, see https://example.com/tests.\n"
+                "- next round in [two weeks](javascript:alert(1))\n\n"
+                "> Thanks for your time,\n> Ada"
+            ),
         )
         got = json.loads(text) if not err else {}
         timeline = (got.get("dossier") or {}).get("timeline") or []
@@ -272,6 +276,24 @@ async def _run(home: Path) -> list[tuple[str, bool, str]]:
         html = page.read_text("utf-8") if page.is_file() else ""
         seen.append(html)  # the leak test below covers the page too
         check("dashboard rewritten", "went well" in html and "Kurt Test" in html)
+        # Notes reach the page as runs, never markup: bold and a safe link
+        # survive, a javascript: link stays literal text, a quote keeps its lines.
+        marker = 'type="application/json">'
+        start = html.find(marker)
+        payload = html[start + len(marker) : html.find("</script>", start)] if start > 0 else "{}"
+        apps = json.loads(payload).get("applications", [])
+        events = [e for a in apps for e in a["events"] if e["date"] == "2026-11-05"]
+        blocks = events[0]["notes"] if events else []
+        runs = [r for b in blocks for line in b.get("ul", []) for r in line]
+        url = "https://example.com/tests"
+        rendered = (
+            {"t": "asked", "b": True} in runs
+            and {"t": url, "href": url} in runs
+            and not any(r.get("href", "").startswith("javascript") for r in runs)
+            and any("javascript:alert(1)" in r["t"] for r in runs)
+            and [len(b["quote"]) for b in blocks if "quote" in b] == [2]
+        )
+        check("notes rendered as runs", rendered, json.dumps(blocks)[:400])
 
         err, text = await call(
             "log_event", slug=SLUG, date="2026-11-10", event="No", status="rejected"

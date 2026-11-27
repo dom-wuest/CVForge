@@ -20,7 +20,7 @@ from typing import Any
 
 import yaml
 
-from . import i18n, letter, paths, resolve
+from . import i18n, letter, notes, paths, resolve
 
 # Artifacts worth scanning as text. PDFs are compressed, so a literal grep
 # would miss the string; they are handled separately below.
@@ -299,7 +299,61 @@ def _check_dossier(slug: str, slugs: set[str]) -> list[str]:
     based_on = (data.get("approach") or {}).get("based_on")
     if based_on and based_on not in slugs:
         out.append(f"[{slug}] approach.based_on names no application {based_on!r}")
-    return out + _check_timeline(slug, data)
+    return out + _check_prose(slug, raw, data) + _check_timeline(slug, data)
+
+
+# A `notes:` written as a folded block (>). Folding joins lines of the same
+# indentation, so "- " items and "> " quotes arrive as one run-on paragraph. A
+# folded block of plain prose is fine - only one holding those lines is reported.
+FOLDED_NOTES = re.compile(r"^(\s*(?:-\s+)?)notes:\s*>[-+0-9]*\s*(?:#.*)?$")
+BLOCK_LINE = re.compile(r"(?:[-*+]|\d{1,3}[.)]|>)(?:\s|$)")
+
+
+def _folded_lists(raw: str) -> int:
+    """How many folded `notes:` blocks contain list or quote lines."""
+    lines, count = raw.splitlines(), 0
+    for i, line in enumerate(lines):
+        key = FOLDED_NOTES.match(line)
+        if not key:
+            continue
+        indent = len(key[1])
+        for body in lines[i + 1 :]:
+            if body.strip() and len(body) - len(body.lstrip()) <= indent:
+                break
+            if BLOCK_LINE.match(body.strip()):
+                count += 1
+                break
+    return count
+
+
+PROSE_KEYS = ("notes", "about", "summary", "angle", "answer")
+
+
+def _prose(node: Any, key: str = "") -> list[str]:
+    if isinstance(node, dict):
+        return [t for k, v in node.items() for t in _prose(v, k)]
+    if isinstance(node, list):
+        return [t for v in node for t in _prose(v, key)]
+    return [node] if isinstance(node, str) and key in PROSE_KEYS else []
+
+
+def _check_prose(slug: str, raw: str, data: dict[str, Any]) -> list[str]:
+    """Markdown the dashboard cannot show as meant: lists in a folded block,
+    and the constructs outside notes.SUBSET."""
+    out: list[str] = []
+    folded = _folded_lists(raw)
+    if folded:
+        out.append(
+            f"[{slug}] {folded} `notes:` with a list or quote written as a folded block "
+            f"(>) - its lines are joined into one paragraph; use | instead"
+        )
+    kinds = sorted({kind for text in _prose(data) for kind in notes.unsupported(text)})
+    if kinds:
+        out.append(
+            f"[{slug}] dossier.yaml uses Markdown {', '.join(kinds)} - "
+            f"the dashboard shows them as plain text"
+        )
+    return out
 
 
 def _check_timeline(slug: str, data: dict[str, Any]) -> list[str]:

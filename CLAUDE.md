@@ -131,6 +131,7 @@ src/cvforge/
   posting.py           Text of an archived posting (pypdf).
   guidance.py          <home>/guidance/: read the three files, append a learning.
   dashboard.py         Every dossier derived into JSON, embedded in <home>/dashboard.html.
+  notes.py             The Markdown subset dossier prose may use, parsed into runs for it.
   mcp_server.py        The local MCP server for Claude Desktop (`cvforge-mcp`).
   mcp_selftest.py      Its end-to-end test against a throwaway home.
 templates/pdf/       The CV renderer.
@@ -789,6 +790,20 @@ everything is still written through the CLI or the MCP tools.
   the `<script>`. The page's JS only routes (`#/`, `#/app/<slug>`,
   `#/people`) and draws, and it sets every value as text, never HTML: the
   dossiers hold other people's writing.
+- **Notes are Markdown, parsed in Python.** Claude Desktop summarises calls
+  and emails in Markdown, so `notes.py` parses a fixed subset - `**bold**`,
+  `*italic*`, `` `code` ``, links, `- ` and `1. ` lists, `> ` quotes - into
+  blocks of *runs* (`{"t": text, "b"/"i"/"code": true, "href": url}`), and the
+  page wraps text nodes in elements. No Markdown library: they emit HTML, and
+  the page never builds markup from data. Links are http/https/mailto only,
+  checked in `notes.py` and again on the page. Emphasis follows the CommonMark
+  flanking rule so `*.pdf and *.png` and `snake_case` stay literal; anything
+  outside the subset, or a marker that does not pair, stays text. Titles
+  (`event`) go through `notes.plain` - markers removed, not rendered.
+  `notes.SUBSET` is the one description of the subset: the MCP `INSTRUCTIONS`
+  embed it, and `check._check_prose` warns about a folded (`>`) `notes:` that
+  holds list or quote lines - folding joins them - and about headings, tables
+  or images. Change the subset there and in the module docstring together.
 - **Local by construction.** It holds recruiters' details and interview notes,
   so it lives in the home beside the dossiers (OneDrive syncs it to the
   laptop) and is gitignored when the repository is the home. No tool returns

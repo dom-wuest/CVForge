@@ -87,9 +87,15 @@ timeline:
     with: [Max Mustermann, Jane Doe]
     event: Technical interview, went well
     notes: |
-      - Walked through the shader LOD thesis; lots of questions on validation
+      - Walked through the shader LOD thesis; **lots of questions on validation**
       - Whiteboard: frustum culling on the GPU, then a bug hunt in a compute shader
-      - They are evaluating neural texture compression
+      - They are evaluating *neural texture compression* - see
+        [their talk](https://acme-graphics.example/talks/ntc)
+
+      Follow-up from Jane the same evening:
+
+      > Thank you for your time today - the team was impressed.
+      > We would like to invite you to an on-site day in Berlin.
   - date: "2026-11-26"
     time: "10:00-15:00"
     kind: interview

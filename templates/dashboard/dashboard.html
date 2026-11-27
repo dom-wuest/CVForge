@@ -44,7 +44,7 @@ body { font: 15px/1.45 Inter, "Segoe UI", system-ui, -apple-system, sans-serif; 
 a { color: var(--accent); }
 a:hover { color: var(--accent-ink); }
 button { font: inherit; color: inherit; }
-h1, h2, h3, p, ul { margin: 0; }
+h1, h2, h3, p, ul, ol { margin: 0; }
 .page { max-width: 1360px; margin: 0 auto; padding: 32px 24px 48px; display: flex; flex-direction: column; gap: 24px; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
@@ -191,7 +191,11 @@ button.ev-head:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .ev-title { font-size: 15px; font-weight: 600; flex: 1 1 220px; min-width: 0; }
 .ev-notes { border-top: 1px solid var(--line); padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
 .prose { font-size: 14px; line-height: 1.5; color: var(--ink-2); display: flex; flex-direction: column; gap: 8px; }
-.prose ul { padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.prose ul, .prose ol { padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.prose ol { padding-left: 22px; }
+.prose blockquote { margin: 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--border); color: var(--muted); }
+.prose code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em; background: var(--chip); border-radius: 4px; padding: 1px 4px; }
+.prose strong { color: var(--ink); }
 .contact { display: flex; gap: 12px; }
 .contact .who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .contact .name { font-size: 15px; font-weight: 600; }
@@ -271,9 +275,28 @@ const pill = (status) => h("span", { class: "pill st-" + status }, status);
 const person = (p) => h("span", { class: "person" }, h("span", { class: "avatar", "aria-hidden": "true" }, p.initials), p.name);
 const kindTag = (e) => h("span", { class: "kind k-" + (e.overdue ? "overdue" : e.kind) }, e.kind_label);
 
+// Notes arrive as blocks of runs - text plus the marks that apply to it - so
+// the page wraps text nodes in elements and never parses markup. dashboard.py
+// (notes.py) admits only http, https and mailto links; checked again here.
+const SAFE_HREF = /^(https?:|mailto:)/i;
+function inline(runs) {
+  return runs.map((r) => {
+    let node = r.t;
+    if (r.code) node = h("code", {}, node);
+    if (r.i) node = h("em", {}, node);
+    if (r.b) node = h("strong", {}, node);
+    if (r.href && SAFE_HREF.test(r.href)) node = h("a", { href: r.href, target: "_blank", rel: "noopener noreferrer" }, node);
+    return node;
+  });
+}
+
 function prose(blocks) {
+  const items = (list) => list.map((i) => h("li", {}, inline(i)));
   return h("div", { class: "prose" }, blocks.map((b) =>
-    b.items ? h("ul", {}, b.items.map((i) => h("li", {}, i))) : h("p", {}, b.text)));
+    b.ul ? h("ul", {}, items(b.ul)) :
+    b.ol ? h("ol", { start: b.start === 1 ? null : b.start }, items(b.ol)) :
+    b.quote ? h("blockquote", {}, b.quote.map((line, n) => [n ? h("br") : null, inline(line)])) :
+    h("p", {}, inline(b.p))));
 }
 
 function header(view) {
@@ -500,19 +523,19 @@ function files(a) {
 }
 
 function about(a) {
-  if (!a.summary && !a.about && !a.keywords.length) return null;
+  if (!a.summary.length && !a.about.length && !a.keywords.length) return null;
   return h("section", { class: "card", style: "gap: 10px" }, h("h2", {}, "The job"),
-    a.summary ? h("p", { class: "prose" }, a.summary) : null,
-    a.about ? h("p", { class: "prose" }, a.about) : null,
+    a.summary.length ? h("p", { class: "prose" }, inline(a.summary)) : null,
+    a.about.length ? h("p", { class: "prose" }, inline(a.about)) : null,
     a.keywords.length ? h("div", { class: "row", style: "gap: 6px" }, a.keywords.map((k) => h("span", { class: "kw" }, k))) : null);
 }
 
 function approach(a) {
   const p = a.approach;
-  if (!p.angle && !p.cv.length && !p.gaps.length) return null;
-  const list = (items) => h("ul", { class: "prose", style: "padding-left: 18px" }, items.map((i) => h("li", {}, i)));
+  if (!p.angle.length && !p.cv.length && !p.gaps.length) return null;
+  const list = (items) => h("ul", { class: "prose", style: "padding-left: 18px" }, items.map((i) => h("li", {}, inline(i))));
   return h("section", { class: "card", style: "gap: 10px" }, h("h2", {}, "Approach"),
-    p.angle ? h("p", { class: "prose" }, p.angle) : null,
+    p.angle.length ? h("p", { class: "prose" }, inline(p.angle)) : null,
     p.cv.length ? [h("div", { class: "label" }, "CV changes"), list(p.cv)] : null,
     p.gaps.length ? [h("div", { class: "label" }, "Gaps"), list(p.gaps)] : null,
     p.based_on ? h("span", { class: "small muted" }, "Based on ", APPS[p.based_on] ? h("a", { href: appHref(p.based_on) }, APPS[p.based_on].company) : p.based_on) : null);
@@ -525,7 +548,7 @@ function posting(a) {
   return h("section", { class: "card", style: "gap: 10px" }, h("h2", {}, "Posting"),
     p.fetched || p.deadline ? h("span", { class: "small muted" }, [p.fetched && "archived " + p.fetched, p.deadline && "closes " + p.deadline].filter(Boolean).join(" · ")) : null,
     p.notes.length ? prose(p.notes) : null,
-    qs.length ? [h("div", { class: "label" }, "Portal questions"), qs.map((q) => h("div", { class: "prose" }, h("p", {}, h("b", {}, q.question)), h("p", {}, q.answer || "—")))] : null);
+    qs.length ? [h("div", { class: "label" }, "Portal questions"), qs.map((q) => h("div", { class: "prose" }, h("p", {}, h("b", {}, inline(q.question))), h("p", {}, q.answer.length ? inline(q.answer) : "—")))] : null);
 }
 
 function notes(a) {

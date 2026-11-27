@@ -22,7 +22,7 @@ from typing import Any
 from urllib.parse import quote
 
 from . import check as check_mod
-from . import paths, resolve, service
+from . import notes, paths, resolve, service
 
 ACTIVE = ("applied", "screening", "interview", "offer")
 CONVERSATION = ("screening", "interview", "offer")
@@ -83,38 +83,6 @@ def _href(path: Path) -> str:
         return path.as_uri()
 
 
-def _blocks(text: str) -> list[dict[str, Any]]:
-    """Notes as paragraphs and lists: "- " starts an item, an indented line
-    continues it, a blank line ends a paragraph."""
-    out: list[dict[str, Any]] = []
-    para: list[str] = []
-    items: list[str] | None = None
-
-    def flush() -> None:
-        if para:
-            out.append({"text": " ".join(para)})
-            para.clear()
-
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line:
-            flush()
-            items = None
-        elif line.startswith(("- ", "* ")):
-            flush()
-            if items is None:
-                items = []
-                out.append({"items": items})
-            items.append(line[2:].strip())
-        elif items is not None and raw[:1] in (" ", "\t"):
-            items[-1] += " " + line
-        else:
-            items = None
-            para.append(line)
-    flush()
-    return out
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # One application
 # ─────────────────────────────────────────────────────────────────────────────
@@ -149,8 +117,8 @@ def _events(slug: str, dossier: dict, track_names: dict[str, str], today: dt.dat
                 "planned": planned,
                 "approx": approx,
                 "overdue": planned and day < today,
-                "event": " ".join(str(entry.get("event", "")).split()),
-                "notes": _blocks(entry.get("notes") or ""),
+                "event": notes.plain(entry.get("event", "")),
+                "notes": notes.blocks(entry.get("notes") or ""),
                 "files": [
                     {"name": Path(rel).name, "href": _href(paths.application(slug) / rel)}
                     for rel in entry.get("files") or []
@@ -202,7 +170,7 @@ def _contacts(dossier: dict, events: list[dict], company: str) -> list[dict]:
                 "org": contact.get("org") or company,
                 "email": contact.get("email") or "",
                 "phone": contact.get("phone") or "",
-                "notes": _blocks(contact.get("notes") or ""),
+                "notes": notes.blocks(contact.get("notes") or ""),
                 "activity": " · ".join(activity),
                 "last": past[0]["date"] if past else "",
                 "next": coming[0]["date"] if coming else "",
@@ -291,25 +259,31 @@ def _application(slug: str, today: dt.date) -> dict[str, Any]:
         "date": service.application_date(slug, dossier),
         "facts": [f for f in facts if f],
         "meta": " · ".join(m for m in meta if m),
-        "summary": " ".join((dossier.get("summary") or "").split()),
+        "summary": notes.paragraph(dossier.get("summary")),
         "keywords": dossier.get("keywords") or [],
-        "about": " ".join(((dossier.get("company") or {}).get("about") or "").split()),
+        "about": notes.paragraph((dossier.get("company") or {}).get("about")),
         "posting": {
             "url": posting.get("url") or "",
             "archive": _href(paths.application(slug) / archive) if archive else "",
             "fetched": short_label(fetched) if fetched else "",
             "deadline": day_label(deadline) if deadline else "",
-            "notes": _blocks(posting.get("notes") or ""),
+            "notes": notes.blocks(posting.get("notes") or ""),
         },
         "approach": {
             "based_on": approach.get("based_on") or "",
-            "angle": " ".join((approach.get("angle") or "").split()),
-            "cv": approach.get("cv") or [],
-            "gaps": approach.get("gaps") or [],
+            "angle": notes.paragraph(approach.get("angle")),
+            "cv": [notes.paragraph(item) for item in approach.get("cv") or []],
+            "gaps": [notes.paragraph(item) for item in approach.get("gaps") or []],
         },
         "submission": {
             "url": submission.get("url") or "",
-            "questions": submission.get("questions") or [],
+            "questions": [
+                {
+                    "question": notes.paragraph(q.get("question")),
+                    "answer": notes.paragraph(q.get("answer")),
+                }
+                for q in submission.get("questions") or []
+            ],
         },
         "tracks": [
             {
@@ -319,13 +293,13 @@ def _application(slug: str, today: dt.date) -> dict[str, Any]:
                 "title": t.get("title") or "",
                 "location": t.get("location") or "",
                 "status": t["status"],
-                "notes": _blocks(t.get("notes") or ""),
+                "notes": notes.blocks(t.get("notes") or ""),
             }
             for t in tracks
         ],
         "events": events,
         "contacts": _contacts(dossier, events, company),
-        "notes": _blocks(dossier.get("notes") or ""),
+        "notes": notes.blocks(dossier.get("notes") or ""),
         "files": _files(slug),
         "folder": _href(paths.application(slug)) + "/",
         "last": last.isoformat() if last else "",

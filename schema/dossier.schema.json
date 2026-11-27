@@ -429,7 +429,7 @@
             "minLength": 1
           },
           "notes": {
-            "description": "What was said and agreed - interview notes, terms, next steps. Markdown; lines starting with \"- \" become a list.",
+            "description": "What was said and agreed - interview notes, terms, next steps. Markdown, as the dashboard shows it: **bold**, *italic*, `code`, links, \"- \" and \"1. \" lists, \"> \" quotes. Write it as a | block, not >, or the lines are joined.",
             "type": [
               "string",
               "null"
